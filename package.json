@@ -4,9 +4,11 @@
   "description": "Node.js is an open-source, cross-platform JavaScript runtime environment.",
   "main": "index.js",
   "dependencies": {
+    "axios": "^1.7.2",
     "corepack": "^0.34.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "multer": "^1.4.5-lts.1",
     "mysql2": "^3.15.3",
     "npm": "^11.6.2"
   },
