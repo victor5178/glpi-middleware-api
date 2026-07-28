@@ -28,9 +28,11 @@ class DashboardController extends Controller
 
         $selectedAudit = collect($audits)->firstWhere('id', $selectedAuditId);
 
+        $groups = $this->groupByCompany($items, $client->locations(), $selectedAudit);
+
         return view('dashboard', [
             'audits' => $audits,
-            'items' => $items,
+            'groups' => $groups,
             'stats' => $stats,
             'selectedAuditId' => $selectedAuditId,
             'selectedAudit' => $selectedAudit,
@@ -49,11 +51,61 @@ class DashboardController extends Controller
 
         abort_if($item === null, 404, 'Scanned record not found.');
 
+        // All photos for this record (there may be more than one).
+        $images = $client->resultImages($resultId);
+        if (empty($images) && ! empty($item['img_dir'])) {
+            $images = [$client->imageUrl($resultId)];
+        }
+
         return view('detail', [
             'item' => $item,
             'auditId' => $auditId,
+            'images' => $images,
             'client' => $client,
         ]);
+    }
+
+    /**
+     * Groups scanned items by the company of their location.
+     * Location comes from the item's actual_location_id, falling back to the
+     * audit's location; company is resolved via the middleware locations list.
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function groupByCompany(array $items, array $locations, ?array $selectedAudit): array
+    {
+        if (empty($items)) {
+            return [];
+        }
+
+        // location_id => company_name
+        $companyByLocation = [];
+        foreach ($locations as $loc) {
+            if (isset($loc['id'])) {
+                $companyByLocation[(int) $loc['id']] = $loc['company_name'] ?? null;
+            }
+        }
+
+        $auditLocationId = $selectedAudit['location_id'] ?? null;
+
+        $groups = [];
+        foreach ($items as $item) {
+            $locId = $item['actual_location_id'] ?? $auditLocationId;
+            $company = ($locId !== null && isset($companyByLocation[(int) $locId]))
+                ? $companyByLocation[(int) $locId]
+                : null;
+            $company = $company ?: 'Unassigned';
+            $groups[$company][] = $item;
+        }
+
+        // Sort company names alphabetically, keeping "Unassigned" last.
+        uksort($groups, function ($a, $b) {
+            if ($a === 'Unassigned') return 1;
+            if ($b === 'Unassigned') return -1;
+            return strcasecmp($a, $b);
+        });
+
+        return $groups;
     }
 
     /**

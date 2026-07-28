@@ -136,6 +136,29 @@ a:hover { text-decoration: underline; }
 .asset .sub { color: var(--muted); font-size: .85rem; }
 .asset .meta { color: var(--muted); font-size: .8rem; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
 
+/* ---------- Company groups ---------- */
+.group-head {
+    display: flex; align-items: center; gap: 9px;
+    margin: 26px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+    color: var(--ink);
+}
+.group-head svg { color: var(--brand); flex: none; }
+.group-name { font-weight: 700; font-size: 1.02rem; }
+.group-count {
+    margin-left: 4px; background: var(--brand-100); color: var(--brand);
+    font-size: .74rem; font-weight: 700; padding: 2px 9px; border-radius: 999px;
+}
+
+/* ---------- Photo gallery (detail) ---------- */
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.thumb-sm {
+    width: 64px; height: 64px; object-fit: cover; border-radius: 8px;
+    border: 2px solid transparent; cursor: pointer; background: #eef1f5;
+}
+.thumb-sm:hover { border-color: var(--brand-100); }
+.thumb-sm.active { border-color: var(--brand); }
+.photo-count { margin-top: 8px; color: var(--muted); font-size: .8rem; }
+
 /* ---------- Pills ---------- */
 .pill { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 .pill-success { background: var(--success-bg); color: var(--success); }
