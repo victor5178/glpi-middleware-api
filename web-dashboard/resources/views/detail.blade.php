@@ -40,16 +40,25 @@
     </div>
 
     <div class="detail-grid">
-        {{-- Photo --}}
+        {{-- Photos (one or more) --}}
         <div class="card">
             <div class="card-body">
-                @if ($hasPhoto)
+                @if (! empty($images))
                     <div class="photo-frame">
-                        <img src="{{ $client->imageUrl($resultId) }}"
-                             alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}"
-                             onerror="this.parentElement.style.display='none';this.parentElement.nextElementSibling.style.display='block';">
+                        <img id="mainPhoto" src="{{ $images[0] }}"
+                             alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}">
                     </div>
-                    <div class="alert alert-muted" style="display:none;margin-top:14px;">Photo could not be loaded from the middleware.</div>
+
+                    @if (count($images) > 1)
+                        <div class="thumbs">
+                            @foreach ($images as $i => $url)
+                                <img class="thumb-sm {{ $i === 0 ? 'active' : '' }}" src="{{ $url }}"
+                                     alt="Photo {{ $i + 1 }}"
+                                     onclick="document.getElementById('mainPhoto').src=this.src;document.querySelectorAll('.thumb-sm').forEach(function(t){t.classList.remove('active');});this.classList.add('active');">
+                            @endforeach
+                        </div>
+                        <div class="photo-count">{{ count($images) }} photos</div>
+                    @endif
                 @else
                     <div class="alert alert-muted" style="margin:0;">No photo attached to this record.</div>
                 @endif

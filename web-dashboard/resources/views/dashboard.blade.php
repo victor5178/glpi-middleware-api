@@ -57,43 +57,50 @@
 
     <div class="section-label">Scanned items</div>
 
-    @if (empty($items))
+    @if (empty($groups))
         <div class="alert alert-muted">No assets have been scanned for this audit yet.</div>
     @else
-        <div class="grid">
-            @foreach ($items as $item)
-                @php
-                    $resultId = (int) ($item['audit_result_id'] ?? 0);
-                    $found = (int) ($item['asset_found'] ?? 0) === 1;
-                    $checkedAt = \Illuminate\Support\Str::of((string) ($item['checked_at'] ?? ''))->replace('T', ' ')->limit(19, '');
-                    $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
-                @endphp
-                <a class="asset" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
-                    <div class="thumb-wrap">
-                        @if ($hasPhoto)
-                            <img loading="lazy" src="{{ $client->imageUrl($resultId) }}"
-                                 alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}"
-                                 onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
-                            <div class="thumb-empty" style="display:none;">Photo unavailable</div>
-                        @else
-                            <div class="thumb-empty">
-                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
-                                No photo
-                            </div>
-                        @endif
-                    </div>
-                    <div class="body">
-                        <div class="row1">
-                            <span class="name">{{ $item['asset_tag'] ?? 'Asset #'.($item['asset_id'] ?? '?') }}</span>
-                            <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
+        @foreach ($groups as $company => $groupItems)
+            <div class="group-head">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V7l6-4 6 4v14M10 9h.01M14 9h.01M10 13h.01M14 13h.01M10 17h.01M14 17h.01"/></svg>
+                <span class="group-name">{{ $company }}</span>
+                <span class="group-count">{{ count($groupItems) }}</span>
+            </div>
+            <div class="grid">
+                @foreach ($groupItems as $item)
+                    @php
+                        $resultId = (int) ($item['audit_result_id'] ?? 0);
+                        $found = (int) ($item['asset_found'] ?? 0) === 1;
+                        $checkedAt = \Illuminate\Support\Str::of((string) ($item['checked_at'] ?? ''))->replace('T', ' ')->limit(19, '');
+                        $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
+                    @endphp
+                    <a class="asset" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
+                        <div class="thumb-wrap">
+                            @if ($hasPhoto)
+                                <img loading="lazy" src="{{ $client->imageUrl($resultId) }}"
+                                     alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}"
+                                     onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+                                <div class="thumb-empty" style="display:none;">Photo unavailable</div>
+                            @else
+                                <div class="thumb-empty">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
+                                    No photo
+                                </div>
+                            @endif
                         </div>
-                        <span class="sub">{{ $item['model'] ?? 'Unknown model' }}</span>
-                        <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
-                        <span class="meta">{{ $item['checked_by'] ?: 'Unknown' }} · {{ $checkedAt }}</span>
-                    </div>
-                </a>
-            @endforeach
-        </div>
+                        <div class="body">
+                            <div class="row1">
+                                <span class="name">{{ $item['asset_tag'] ?? 'Asset #'.($item['asset_id'] ?? '?') }}</span>
+                                <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
+                            </div>
+                            <span class="sub">{{ $item['model'] ?? 'Unknown model' }}</span>
+                            <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
+                            <span class="meta">{{ $item['checked_by'] ?: 'Unknown' }} · {{ $checkedAt }}</span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        @endforeach
     @endif
 
 @endsection

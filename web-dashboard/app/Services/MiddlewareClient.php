@@ -55,6 +55,25 @@ class MiddlewareClient
     }
 
     /**
+     * Full URLs of every photo attached to an audit result (may be more than
+     * one). Falls back to an empty array if none / middleware unreachable.
+     *
+     * @return array<int, string>
+     */
+    public function resultImages(int $auditResultId): array
+    {
+        $json = $this->getJson("/api/audit/result/{$auditResultId}/images");
+        if ($json === null || ! is_array($json['images'] ?? null)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn ($img) => isset($img['url']) ? $this->baseUrl.$img['url'] : null,
+            $json['images']
+        )));
+    }
+
+    /**
      * GET a JSON endpoint and pull a nested key (e.g. paginated "data").
      *
      * @return array<int, array<string, mixed>>
