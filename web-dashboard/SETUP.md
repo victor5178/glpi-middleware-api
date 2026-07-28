@@ -123,18 +123,39 @@ Open `http://<container-ip>:8000` from your PC (`hostname -I` shows the IP).
 
 ---
 
-## Production hosting (later)
+## Keep it running (beyond `php artisan serve`)
 
-`php artisan serve` is dev-only (single process). For real use, serve with
-**nginx + php-fpm**, docroot = `web-dashboard/public/`, then:
+`php artisan serve` stops when you close the shell. Two ways to keep it up —
+config files are in [`deploy/`](deploy/).
+
+### Option A — systemd + `artisan serve` (simple, good for a LAN/test container)
+
+```bash
+sudo cp deploy/glpi-dashboard.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now glpi-dashboard
+systemctl status glpi-dashboard          # runs on port 8000, restarts on reboot
+```
+
+### Option B — nginx + php-fpm (proper hosting)
+
+```bash
+sudo apt install -y nginx php-fpm
+sudo cp deploy/nginx-glpi-dashboard.conf /etc/nginx/sites-available/glpi-dashboard
+sudo ln -s /etc/nginx/sites-available/glpi-dashboard /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+ls /run/php/                              # confirm the fpm socket name, edit the conf if needed
+sudo nginx -t && sudo systemctl reload nginx
+sudo chown -R www-data:www-data storage bootstrap/cache
+```
+
+Then cache config for speed (re-run after any code/config change):
 
 ```bash
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
-
-Run these again after any config or code change.
 
 ## Troubleshooting
 
