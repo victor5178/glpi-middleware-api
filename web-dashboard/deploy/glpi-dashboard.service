@@ -1,0 +1,26 @@
+[Unit]
+Description=GLPI Audit Dashboard (Laravel)
+After=network.target
+
+# Simple way to keep the dashboard running on a LAN/test container without a
+# full web server. For heavier use, prefer nginx + php-fpm (see nginx-glpi-dashboard.conf).
+#
+# Install:
+#   sudo cp deploy/glpi-dashboard.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now glpi-dashboard
+#   systemctl status glpi-dashboard
+#
+# Adjust WorkingDirectory / php path / User to match your box.
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/glpi-middleware-api/web-dashboard
+ExecStart=/usr/bin/php artisan serve --host=0.0.0.0 --port=8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
