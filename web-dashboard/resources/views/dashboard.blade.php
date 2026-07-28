@@ -73,6 +73,7 @@
                         $found = (int) ($item['asset_found'] ?? 0) === 1;
                         $checkedAt = \Illuminate\Support\Str::of((string) ($item['checked_at'] ?? ''))->replace('T', ' ')->limit(19, '');
                         $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
+                        $user = ($item['actual_user'] ?? '') ?: ($item['assigned_user'] ?? '') ?: '—';
                     @endphp
                     <a class="asset" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
                         <div class="thumb-wrap">
@@ -94,6 +95,10 @@
                                 <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
                             </div>
                             <span class="sub">{{ $item['model'] ?? 'Unknown model' }}</span>
+                            <span class="sub user">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                {{ $user }}
+                            </span>
                             <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
                             <span class="meta">{{ $item['checked_by'] ?: 'Unknown' }} · {{ $checkedAt }}</span>
                         </div>

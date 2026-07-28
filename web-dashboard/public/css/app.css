@@ -134,6 +134,8 @@ a:hover { text-decoration: underline; }
 .asset .row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .asset .name { font-weight: 700; font-size: 1rem; }
 .asset .sub { color: var(--muted); font-size: .85rem; }
+.asset .sub.user { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 600; }
+.asset .sub.user svg { color: var(--brand); flex: none; }
 .asset .meta { color: var(--muted); font-size: .8rem; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
 
 /* ---------- Company groups ---------- */
