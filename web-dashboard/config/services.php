@@ -15,7 +15,7 @@ return [
     */
 
     'middleware' => [
-        'base_url' => env('MIDDLEWARE_BASE_URL', 'http://localhost:3003'),
+        'base_url' => env('MIDDLEWARE_BASE_URL', 'http://10.0.0.184:3003'),
         'timeout' => (int) env('MIDDLEWARE_TIMEOUT', 15),
     ],
 
