@@ -2,18 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GlpiClient;
 use App\Services\MiddlewareClient;
 use Illuminate\Http\Request;
 
 class ManualController extends Controller
 {
-    /** Show the manual audit-entry form. */
-    public function create(MiddlewareClient $client)
+    /** Show the manual audit-entry form (with an optional GLPI asset search). */
+    public function create(Request $request, MiddlewareClient $client, GlpiClient $glpi)
     {
+        // GLPI asset search (by serial / user / id), reusing the login session.
+        $q = trim((string) $request->query('q', ''));
+        $glpiResults = [];
+        $glpiError = null;
+        if ($q !== '') {
+            $glpiResults = $glpi->search($q, $request->session()->get('glpi_session_token'));
+            $glpiError = $glpi->lastError;
+        }
+
         return view('manual', [
             'audits' => $client->audits(),
             'locations' => $client->locations(),
             'error' => $client->lastError,
+            'q' => $q,
+            'glpiResults' => $glpiResults,
+            'glpiError' => $glpiError,
         ]);
     }
 

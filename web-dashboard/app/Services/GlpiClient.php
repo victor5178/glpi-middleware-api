@@ -39,13 +39,14 @@ class GlpiClient
 
     /**
      * Verifies a username/password against GLPI (used by the dashboard login).
-     * Only needs GLPI_URL + GLPI_APP_TOKEN configured — not the service account.
+     * Only needs GLPI_URL + GLPI_APP_TOKEN. Returns the GLPI session token on
+     * success (kept alive so it can be reused for searching), or null.
      */
-    public function attemptLogin(string $username, string $password): bool
+    public function attemptLogin(string $username, string $password): ?string
     {
         if ($this->baseUrl === '' || $this->appToken === '') {
             $this->lastError = 'GLPI is not configured on the server (GLPI_URL / GLPI_APP_TOKEN).';
-            return false;
+            return null;
         }
         try {
             $resp = Http::timeout($this->timeout)
@@ -59,19 +60,24 @@ class GlpiClient
                 $body = $resp->json();
                 $msg = is_array($body) ? implode(' — ', array_filter($body, 'is_string')) : $resp->body();
                 $this->lastError = 'Login failed (HTTP '.$resp->status().')'.($msg ? ': '.$msg : '');
-                return false;
+                return null;
             }
             $token = $resp->json('session_token');
             if (! $token) {
                 $this->lastError = 'GLPI did not return a session token.';
-                return false;
+                return null;
             }
-            $this->killSession($token); // don't leave the session open
-            return true;
+            return $token;
         } catch (\Throwable $e) {
             $this->lastError = 'Could not reach GLPI at '.$this->baseUrl.' ('.$e->getMessage().').';
-            return false;
+            return null;
         }
+    }
+
+    /** Public wrapper so the auth flow can close a GLPI session on logout. */
+    public function endSession(string $sessionToken): void
+    {
+        $this->killSession($sessionToken);
     }
 
     /**
@@ -79,20 +85,30 @@ class GlpiClient
      *
      * @return array<int, array<string, mixed>> normalized results
      */
-    public function search(string $q): array
+    public function search(string $q, ?string $sessionToken = null): array
     {
         $q = trim($q);
         if ($q === '') {
             return [];
         }
-        if (! $this->isConfigured()) {
-            $this->lastError = 'GLPI is not configured. Set GLPI_URL / GLPI_APP_TOKEN / GLPI_LOGIN / GLPI_PASSWORD.';
-            return [];
-        }
 
-        $session = $this->initSession();
-        if ($session === null) {
-            return []; // lastError already set
+        // Prefer the caller's GLPI session (the logged-in user). Only fall back
+        // to a configured service account if no session token is available.
+        $ownSession = false;
+        $session = $sessionToken;
+        if ($session === null || $session === '') {
+            if (! $this->isConfigured()) {
+                $this->lastError = 'GLPI is not configured. Log in again, or set GLPI_LOGIN / GLPI_PASSWORD for a service account.';
+                return [];
+            }
+            $session = $this->initSession();
+            if ($session === null) {
+                return []; // lastError already set
+            }
+            $ownSession = true;
+        } elseif ($this->baseUrl === '' || $this->appToken === '') {
+            $this->lastError = 'GLPI is not configured on the server (GLPI_URL / GLPI_APP_TOKEN).';
+            return [];
         }
 
         $seen = [];
@@ -134,7 +150,10 @@ class GlpiClient
                 }
             }
         } finally {
-            $this->killSession($session);
+            // Only close a session we opened; never kill the login session.
+            if ($ownSession) {
+                $this->killSession($session);
+            }
         }
 
         return $results;
