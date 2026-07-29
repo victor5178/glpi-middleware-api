@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\GlpiClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 
 class AuthController extends Controller
 {
@@ -24,10 +25,12 @@ class AuthController extends Controller
 
         $token = $glpi->attemptLogin($data['username'], $data['password']);
         if ($token !== null) {
+            $glpi->endSession($token); // close the login session; searches re-auth
             $request->session()->regenerate();
             $request->session()->put('glpi_user', $data['username']);
-            // Reused for GLPI searches so no service account is needed.
-            $request->session()->put('glpi_session_token', $token);
+            // Stored encrypted so each search can re-authenticate to GLPI
+            // (no stale session tokens, no service account needed).
+            $request->session()->put('glpi_pw', Crypt::encryptString($data['password']));
             return redirect()->intended(route('dashboard'));
         }
 
@@ -36,13 +39,9 @@ class AuthController extends Controller
             ->with('error', $glpi->lastError ?? 'Login failed.');
     }
 
-    public function logout(Request $request, GlpiClient $glpi)
+    public function logout(Request $request)
     {
-        $token = $request->session()->get('glpi_session_token');
-        if ($token) {
-            $glpi->endSession($token); // best-effort close on GLPI
-        }
-        $request->session()->forget(['glpi_user', 'glpi_session_token']);
+        $request->session()->forget(['glpi_user', 'glpi_pw']);
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect()->route('login');
