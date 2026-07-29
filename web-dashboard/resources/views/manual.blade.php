@@ -23,6 +23,49 @@
         <div class="alert alert-muted">{{ $error }}</div>
     @endif
 
+    {{-- GLPI asset lookup (find the asset, then it prefills the tag below) --}}
+    <form method="get" action="{{ route('manual.create') }}" class="filter" style="gap:10px;">
+        <div class="field" style="flex:1;">
+            <label for="q">Find asset in GLPI (asset id, serial or user)</label>
+            <input class="input" id="q" name="q" value="{{ $q }}" placeholder="e.g. SN-ABC-999, victor.t, 1234" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-primary">Query</button>
+        @if ($q !== '')
+            <a class="btn btn-ghost" href="{{ route('manual.create') }}">Clear</a>
+        @endif
+    </form>
+
+    @if ($q !== '')
+        @if ($glpiError)
+            <div class="alert alert-warn">{{ $glpiError }}</div>
+        @elseif (empty($glpiResults))
+            <div class="alert alert-muted">No GLPI assets matched “{{ $q }}”.</div>
+        @else
+            <div class="grid" style="margin-bottom:22px;">
+                @foreach ($glpiResults as $r)
+                    @php $tag = $r['otherserial'] ?: ($r['serial'] ?: ''); @endphp
+                    <div class="asset" style="cursor:default;">
+                        <div class="body">
+                            <div class="row1">
+                                <span class="name">{{ $r['name'] ?: ('#'.$r['id']) }}</span>
+                                <span class="pill pill-muted">{{ $r['type'] }}</span>
+                            </div>
+                            <span class="sub">Serial: {{ $r['serial'] ?: '—' }}</span>
+                            <span class="sub">Asset tag: {{ $r['otherserial'] ?: '—' }}</span>
+                            <span class="sub user">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                {{ $r['contact'] ?: '—' }}
+                            </span>
+                            <span class="meta">GLPI ID: {{ $r['id'] }}</span>
+                            <a class="btn btn-primary" style="margin-top:10px;align-self:flex-start;"
+                               href="{{ route('manual.create', ['asset_tag' => $tag]) }}">Use this asset</a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    @endif
+
     <form method="post" action="{{ route('manual.store') }}" enctype="multipart/form-data">
         @csrf
 

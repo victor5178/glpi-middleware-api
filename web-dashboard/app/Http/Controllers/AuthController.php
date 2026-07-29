@@ -22,9 +22,12 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if ($glpi->attemptLogin($data['username'], $data['password'])) {
+        $token = $glpi->attemptLogin($data['username'], $data['password']);
+        if ($token !== null) {
             $request->session()->regenerate();
             $request->session()->put('glpi_user', $data['username']);
+            // Reused for GLPI searches so no service account is needed.
+            $request->session()->put('glpi_session_token', $token);
             return redirect()->intended(route('dashboard'));
         }
 
@@ -33,9 +36,13 @@ class AuthController extends Controller
             ->with('error', $glpi->lastError ?? 'Login failed.');
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request, GlpiClient $glpi)
     {
-        $request->session()->forget('glpi_user');
+        $token = $request->session()->get('glpi_session_token');
+        if ($token) {
+            $glpi->endSession($token); // best-effort close on GLPI
+        }
+        $request->session()->forget(['glpi_user', 'glpi_session_token']);
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect()->route('login');
