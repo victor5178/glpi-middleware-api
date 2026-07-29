@@ -20,6 +20,13 @@
             <nav class="nav-links">
                 <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
                 <a class="nav-link primary" href="{{ route('manual.create') }}">+ Manual entry</a>
+                @if (session('glpi_user'))
+                    <span class="nav-user">{{ session('glpi_user') }}</span>
+                    <form method="post" action="{{ route('logout') }}" style="margin:0;">
+                        @csrf
+                        <button type="submit" class="nav-link" style="background:none;border:0;cursor:pointer;">Logout</button>
+                    </form>
+                @endif
             </nav>
         </div>
     </header>

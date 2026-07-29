@@ -1,15 +1,24 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+// --- Auth (GLPI login) ---
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::get('/manual', [ManualController::class, 'create'])->name('manual.create');
-Route::post('/manual', [ManualController::class, 'store'])->name('manual.store');
+// --- Protected app ---
+Route::middleware('auth.glpi')->group(function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-Route::get('/audit/{auditId}/result/{resultId}', [DashboardController::class, 'show'])
-    ->whereNumber('auditId')
-    ->whereNumber('resultId')
-    ->name('scanned.show');
+    Route::get('/manual', [ManualController::class, 'create'])->name('manual.create');
+    Route::post('/manual', [ManualController::class, 'store'])->name('manual.store');
+
+    Route::get('/audit/{auditId}/result/{resultId}', [DashboardController::class, 'show'])
+        ->whereNumber('auditId')
+        ->whereNumber('resultId')
+        ->name('scanned.show');
+});
