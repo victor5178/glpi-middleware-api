@@ -14,3 +14,15 @@ CREATE TABLE IF NOT EXISTS network_devices (
     created_by  VARCHAR(100) NULL,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Multiple photos per audit result (audit_results only stores one img_dir).
+-- Also auto-created by the middleware on startup.
+CREATE TABLE IF NOT EXISTS audit_result_images (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    audit_result_id INT NOT NULL,
+    img_dir         VARCHAR(255) NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    KEY audit_result_id (audit_result_id),
+    CONSTRAINT fk_ari_audit_result FOREIGN KEY (audit_result_id)
+        REFERENCES audit_results (id) ON DELETE CASCADE
+);
