@@ -2,13 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GlpiClient;
 use App\Services\MiddlewareClient;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, MiddlewareClient $client)
+    public function index(Request $request, MiddlewareClient $client, GlpiClient $glpi)
     {
+        // GLPI asset search (by serial / user / id).
+        $q = trim((string) $request->query('q', ''));
+        $glpiResults = [];
+        $glpiError = null;
+        if ($q !== '') {
+            $glpiResults = $glpi->search($q);
+            $glpiError = $glpi->lastError;
+        }
+
         $audits = $client->audits();
 
         // Selected audit: query param, else the most recent audit.
@@ -38,6 +48,9 @@ class DashboardController extends Controller
             'selectedAudit' => $selectedAudit,
             'client' => $client,
             'error' => $client->lastError,
+            'q' => $q,
+            'glpiResults' => $glpiResults,
+            'glpiError' => $glpiError,
         ]);
     }
 
