@@ -27,6 +27,19 @@ class ManualController extends Controller
                     $password = null;
                 }
             }
+
+            // Sessions created before the auto-reauth update have a username but
+            // no stored password — searching would fail with a confusing config
+            // error. Clear the stale session and send the user to a fresh login
+            // (which stores the encrypted password searches re-authenticate with).
+            if (($password === null || $password === '') && ! $glpi->isConfigured()) {
+                $request->session()->forget(['glpi_user', 'glpi_pw']);
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return redirect()->route('login')
+                    ->with('error', 'Please sign in again to search GLPI (your session predates a security update).');
+            }
+
             $glpiResults = $glpi->search($q, $username, $password);
             $glpiError = $glpi->lastError;
         }
@@ -41,6 +54,12 @@ class ManualController extends Controller
         ]);
     }
 
+    /** Camera-based QR scan page (mobile browser). Decodes → manual entry. */
+    public function scan()
+    {
+        return view('scan');
+    }
+
     /** Submit a manually entered audit result + uploaded photos. */
     public function store(Request $request, MiddlewareClient $client)
     {
@@ -51,20 +70,45 @@ class ManualController extends Controller
             'checked_by' => 'required|string|max:50',
             'actual_user' => 'nullable|string|max:50',
             'additional_info' => 'nullable|string',
+            'glpi_id' => 'nullable|integer',
+            'serial_number' => 'nullable|string|max:100',
+            'category' => 'nullable|string|max:50',
+            'model' => 'nullable|string|max:100',
+            'assigned_user' => 'nullable|string|max:100',
             'photos.*' => 'nullable|image|max:51200', // 50 MB, matches middleware
         ]);
 
+        $assetTag = trim($validated['asset_tag']);
+
         // Resolve the asset by its tag to get an internal id.
-        $asset = $client->getAsset(trim($validated['asset_tag']));
-        if ($asset === null || ! isset($asset['id'])) {
-            return back()->withInput()->with('error', "Asset '{$validated['asset_tag']}' was not found in the inventory.");
+        $asset = $client->getAsset($assetTag);
+        $assetId = (is_array($asset) && isset($asset['id'])) ? (int) $asset['id'] : null;
+
+        // If it isn't in the local inventory yet but the GLPI search carried its
+        // details, create/update it first — same as the mobile scan → submit flow.
+        if ($assetId === null && ! empty($validated['category'])) {
+            $assetId = $client->upsertAsset([
+                'glpi_id' => $validated['glpi_id'] ?? null,
+                'asset_tag' => $assetTag,
+                'serial_number' => $validated['serial_number'] ?? null,
+                'model' => $validated['model'] ?? null,
+                'category' => $this->normalizeCategory($validated['category']),
+                'assigned_user' => $validated['assigned_user'] ?? null,
+            ]);
+        }
+
+        if ($assetId === null) {
+            $msg = $client->lastError
+                ? "Could not save asset '{$assetTag}': {$client->lastError}"
+                : "Asset '{$assetTag}' was not found in the inventory. Search GLPI above and use “Use this asset” to link it.";
+            return back()->withInput()->with('error', $msg);
         }
 
         $flag = fn (string $key) => $request->boolean($key) ? 1 : 0;
 
         $payload = [
             'audit_id' => (int) $validated['audit_id'],
-            'asset_id' => (int) $asset['id'],
+            'asset_id' => $assetId,
             'asset_found' => $flag('asset_found'),
             'actual_user' => $validated['actual_user'] ?? null,
             'actual_location_id' => (int) $validated['actual_location_id'],
@@ -108,5 +152,21 @@ class ManualController extends Controller
         return redirect()
             ->route('scanned.show', ['auditId' => (int) $validated['audit_id'], 'resultId' => $auditResultId])
             ->with('success', $flash);
+    }
+
+    /**
+     * Map a GLPI item type to a category the middleware's assets table accepts.
+     * The middleware allows: Desktop, Laptop, Monitor, Printer, UPS, Computer,
+     * Peripheral. Anything unknown falls back to Computer.
+     */
+    protected function normalizeCategory(string $type): string
+    {
+        $allowed = ['Desktop', 'Laptop', 'Monitor', 'Printer', 'UPS', 'Computer', 'Peripheral'];
+        foreach ($allowed as $c) {
+            if (strcasecmp($type, $c) === 0) {
+                return $c;
+            }
+        }
+        return 'Computer';
     }
 }

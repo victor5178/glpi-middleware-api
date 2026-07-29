@@ -58,7 +58,15 @@
                             </span>
                             <span class="meta">GLPI ID: {{ $r['id'] }}</span>
                             <a class="btn btn-primary" style="margin-top:10px;align-self:flex-start;"
-                               href="{{ route('manual.create', ['asset_tag' => $tag]) }}">Use this asset</a>
+                               href="{{ route('manual.create', array_filter([
+                                   'asset_tag'     => $tag,
+                                   'glpi_id'       => $r['id'],
+                                   'serial_number' => $r['serial'],
+                                   'category'      => $r['type'],
+                                   'model'         => $r['name'],
+                                   'assigned_user' => $r['contact'],
+                                   'q'             => $q,
+                               ], fn ($v) => $v !== null && $v !== '')) }}">Use this asset</a>
                         </div>
                     </div>
                 @endforeach
@@ -68,6 +76,24 @@
 
     <form method="post" action="{{ route('manual.store') }}" enctype="multipart/form-data">
         @csrf
+
+        {{-- GLPI asset details carried over from the search, so submitting can
+             create/update the asset in the inventory (like the mobile scan). --}}
+        <input type="hidden" name="glpi_id" value="{{ old('glpi_id', request('glpi_id')) }}">
+        <input type="hidden" name="serial_number" value="{{ old('serial_number', request('serial_number')) }}">
+        <input type="hidden" name="category" value="{{ old('category', request('category')) }}">
+        <input type="hidden" name="model" value="{{ old('model', request('model')) }}">
+        <input type="hidden" name="assigned_user" value="{{ old('assigned_user', request('assigned_user')) }}">
+
+        @if (old('glpi_id', request('glpi_id')) || old('serial_number', request('serial_number')))
+            <div class="alert alert-muted" style="margin-bottom:16px;">
+                Linked to GLPI asset
+                @if (old('model', request('model')))<strong>{{ old('model', request('model')) }}</strong>@endif
+                @if (old('serial_number', request('serial_number')))· Serial {{ old('serial_number', request('serial_number')) }}@endif
+                @if (old('category', request('category')))· {{ old('category', request('category')) }}@endif.
+                It will be added to the inventory on submit.
+            </div>
+        @endif
 
         <div class="card">
             <div class="card-body">
@@ -110,7 +136,7 @@
 
                     <div class="form-field">
                         <label>Actual user</label>
-                        <input class="input" name="actual_user" value="{{ old('actual_user') }}" placeholder="If different from assigned" />
+                        <input class="input" name="actual_user" value="{{ old('actual_user', request('assigned_user')) }}" placeholder="If different from assigned" />
                     </div>
                 </div>
             </div>

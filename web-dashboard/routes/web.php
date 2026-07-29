@@ -17,6 +17,8 @@ Route::middleware('auth.glpi')->group(function () {
     Route::get('/manual', [ManualController::class, 'create'])->name('manual.create');
     Route::post('/manual', [ManualController::class, 'store'])->name('manual.store');
 
+    Route::get('/scan', [ManualController::class, 'scan'])->name('scan');
+
     Route::get('/audit/{auditId}/result/{resultId}', [DashboardController::class, 'show'])
         ->whereNumber('auditId')
         ->whereNumber('resultId')

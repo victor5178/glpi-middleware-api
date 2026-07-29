@@ -56,6 +56,32 @@ class MiddlewareClient
     }
 
     /**
+     * Create or update an asset in the middleware inventory (non-destructive
+     * upsert). Used when submitting an audit for an asset found in GLPI that
+     * may not yet exist locally — mirrors the Android scan → submit flow.
+     * Returns the asset's internal id, or null on failure.
+     */
+    public function upsertAsset(array $payload): ?int
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->post($this->baseUrl.'/api/assets', $payload);
+            if (! $resp->successful()) {
+                $body = $resp->json();
+                $this->lastError = is_array($body) && isset($body['message'])
+                    ? $body['message']
+                    : "Middleware returned HTTP {$resp->status()} for /api/assets.";
+                return null;
+            }
+            $id = $resp->json('id');
+            return $id !== null ? (int) $id : null;
+        } catch (\Throwable $e) {
+            $this->lastError = "Could not reach the middleware at {$this->baseUrl} ({$e->getMessage()}).";
+            return null;
+        }
+    }
+
+    /**
      * Submit an audit result. Returns ['ok'=>bool, 'status'=>int, 'body'=>array].
      */
     public function submitAudit(array $payload): array

@@ -199,7 +199,7 @@ a:hover { text-decoration: underline; }
 /* ---------- Detail ---------- */
 .detail-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 22px; align-items: start; }
 .photo-frame { background: #0e1116; border-radius: var(--radius); overflow: hidden; display: grid; place-items: center; min-height: 280px; }
-.photo-frame img { width: 100%; max-height: 520px; object-fit: contain; display: block; }
+.photo-frame img { max-width: 100%; max-height: 520px; width: auto; height: auto; object-fit: contain; display: block; }
 .kv { width: 100%; border-collapse: collapse; }
 .kv th, .kv td { text-align: left; padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .kv th { color: var(--muted); font-weight: 500; width: 42%; }
