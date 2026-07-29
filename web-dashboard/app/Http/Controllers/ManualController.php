@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\GlpiClient;
 use App\Services\MiddlewareClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 
 class ManualController extends Controller
 {
@@ -16,7 +17,17 @@ class ManualController extends Controller
         $glpiResults = [];
         $glpiError = null;
         if ($q !== '') {
-            $glpiResults = $glpi->search($q, $request->session()->get('glpi_session_token'));
+            // Re-authenticate to GLPI with the stored (encrypted) credentials.
+            $username = $request->session()->get('glpi_user');
+            $password = null;
+            if ($enc = $request->session()->get('glpi_pw')) {
+                try {
+                    $password = Crypt::decryptString($enc);
+                } catch (\Throwable $e) {
+                    $password = null;
+                }
+            }
+            $glpiResults = $glpi->search($q, $username, $password);
             $glpiError = $glpi->lastError;
         }
 

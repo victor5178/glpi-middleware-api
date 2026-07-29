@@ -85,30 +85,26 @@ class GlpiClient
      *
      * @return array<int, array<string, mixed>> normalized results
      */
-    public function search(string $q, ?string $sessionToken = null): array
+    public function search(string $q, ?string $username = null, ?string $password = null): array
     {
         $q = trim($q);
         if ($q === '') {
             return [];
         }
 
-        // Prefer the caller's GLPI session (the logged-in user). Only fall back
-        // to a configured service account if no session token is available.
-        $ownSession = false;
-        $session = $sessionToken;
-        if ($session === null || $session === '') {
-            if (! $this->isConfigured()) {
-                $this->lastError = 'GLPI is not configured. Log in again, or set GLPI_LOGIN / GLPI_PASSWORD for a service account.';
-                return [];
-            }
+        // Open a FRESH GLPI session for each search — either with the logged-in
+        // user's credentials (auto re-auth, so a stale token can never happen)
+        // or a configured service account. Always closed afterwards.
+        if ($username !== null && $username !== '' && $password !== null && $password !== '') {
+            $session = $this->attemptLogin($username, $password);
+        } elseif ($this->isConfigured()) {
             $session = $this->initSession();
-            if ($session === null) {
-                return []; // lastError already set
-            }
-            $ownSession = true;
-        } elseif ($this->baseUrl === '' || $this->appToken === '') {
-            $this->lastError = 'GLPI is not configured on the server (GLPI_URL / GLPI_APP_TOKEN).';
+        } else {
+            $this->lastError = 'GLPI is not configured. Log in again, or set GLPI_LOGIN / GLPI_PASSWORD for a service account.';
             return [];
+        }
+        if ($session === null) {
+            return []; // lastError already set
         }
 
         $seen = [];
@@ -150,10 +146,7 @@ class GlpiClient
                 }
             }
         } finally {
-            // Only close a session we opened; never kill the login session.
-            if ($ownSession) {
-                $this->killSession($session);
-            }
+            $this->killSession($session);
         }
 
         return $results;
