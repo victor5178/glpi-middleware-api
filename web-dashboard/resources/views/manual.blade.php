@@ -57,7 +57,7 @@
 
                     <div class="form-field">
                         <label>Asset tag <span class="req">*</span></label>
-                        <input class="input" name="asset_tag" value="{{ old('asset_tag') }}" placeholder="e.g. PC-00123" />
+                        <input class="input" name="asset_tag" value="{{ old('asset_tag', request('asset_tag')) }}" placeholder="e.g. PC-00123" />
                     </div>
 
                     <div class="form-field">
