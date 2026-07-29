@@ -60,6 +60,30 @@ class ManualController extends Controller
         return view('scan');
     }
 
+    /**
+     * AJAX: has this asset already been recorded for the given audit? Used by
+     * the manual form to warn before overwriting an existing result.
+     */
+    public function checkDuplicate(Request $request, MiddlewareClient $client)
+    {
+        $auditId = (int) $request->query('audit_id', 0);
+        $assetTag = trim((string) $request->query('asset_tag', ''));
+
+        if ($auditId <= 0 || $assetTag === '') {
+            return response()->json(['duplicate' => false]);
+        }
+
+        $match = collect($client->scannedItems($auditId))->first(
+            fn ($i) => strcasecmp(trim((string) ($i['asset_tag'] ?? '')), $assetTag) === 0
+        );
+
+        return response()->json([
+            'duplicate' => $match !== null,
+            'checked_by' => $match['checked_by'] ?? null,
+            'checked_at' => $match['checked_at'] ?? null,
+        ]);
+    }
+
     /** Submit a manually entered audit result + uploaded photos. */
     public function store(Request $request, MiddlewareClient $client)
     {

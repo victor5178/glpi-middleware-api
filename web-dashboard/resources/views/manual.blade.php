@@ -73,7 +73,7 @@
         @endif
     @endif
 
-    <form method="post" action="{{ route('manual.store') }}" enctype="multipart/form-data">
+    <form method="post" action="{{ route('manual.store') }}" enctype="multipart/form-data" id="auditForm">
         @csrf
 
         {{-- GLPI asset details carried over from the search, so submitting can
@@ -187,5 +187,68 @@
 
         <button type="submit" class="btn btn-primary" style="margin-top:18px;">Submit audit</button>
     </form>
+
+    {{-- Duplicate-asset confirmation dialog --}}
+    <div id="dupModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <h3 style="margin:0 0 8px;">Duplicate asset</h3>
+            <p id="dupMsg" style="margin:0;color:var(--muted);"></p>
+            <div class="modal-actions">
+                <button type="button" id="dupCancel" class="btn btn-ghost">Cancel</button>
+                <button type="button" id="dupContinue" class="btn btn-primary">Continue &amp; overwrite</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var form = document.getElementById('auditForm');
+        var modal = document.getElementById('dupModal');
+        var checkUrl = @json(route('manual.check'));
+        var proceed = false; // set once the user has confirmed (or no dup)
+
+        form.addEventListener('submit', function (e) {
+            if (proceed) return; // already cleared — let it submit
+
+            var auditEl = form.querySelector('[name="audit_id"]');
+            var tagEl = form.querySelector('[name="asset_tag"]');
+            var auditId = auditEl ? auditEl.value : '';
+            var assetTag = tagEl ? tagEl.value.trim() : '';
+            if (!auditId || !assetTag) return; // let server-side validation handle empties
+
+            e.preventDefault();
+            var url = checkUrl + (checkUrl.indexOf('?') === -1 ? '?' : '&') +
+                'audit_id=' + encodeURIComponent(auditId) +
+                '&asset_tag=' + encodeURIComponent(assetTag);
+
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d && d.duplicate) {
+                        var msg = 'This asset was already recorded for this audit';
+                        if (d.checked_by) msg += ' by ' + d.checked_by;
+                        var when = (d.checked_at || '').replace('T', ' ').slice(0, 19);
+                        if (when) msg += ' on ' + when;
+                        msg += '. Continue and overwrite the existing record?';
+                        document.getElementById('dupMsg').textContent = msg;
+                        modal.style.display = 'flex';
+                    } else {
+                        proceed = true;
+                        form.submit();
+                    }
+                })
+                .catch(function () { proceed = true; form.submit(); }); // fail open
+        });
+
+        document.getElementById('dupCancel').addEventListener('click', function () {
+            modal.style.display = 'none'; // stay on the page, inputs untouched
+        });
+        document.getElementById('dupContinue').addEventListener('click', function () {
+            proceed = true;
+            modal.style.display = 'none';
+            form.submit();
+        });
+    })();
+    </script>
 
 @endsection

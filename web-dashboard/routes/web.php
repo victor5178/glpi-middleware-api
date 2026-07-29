@@ -16,6 +16,7 @@ Route::middleware('auth.glpi')->group(function () {
 
     Route::get('/manual', [ManualController::class, 'create'])->name('manual.create');
     Route::post('/manual', [ManualController::class, 'store'])->name('manual.store');
+    Route::get('/manual/check-duplicate', [ManualController::class, 'checkDuplicate'])->name('manual.check');
 
     Route::get('/scan', [ManualController::class, 'scan'])->name('scan');
 
