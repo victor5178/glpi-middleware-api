@@ -17,7 +17,10 @@
                 </span>
                 GLPI Audit Dashboard
             </a>
-            <span class="subtitle">IT asset inventory audit</span>
+            <nav class="nav-links">
+                <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
+                <a class="nav-link primary" href="{{ route('manual.create') }}">+ Manual entry</a>
+            </nav>
         </div>
     </header>
 
