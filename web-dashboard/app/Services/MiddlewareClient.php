@@ -48,6 +48,45 @@ class MiddlewareClient
         return $this->getJson('/api/locations') ?? [];
     }
 
+    /** Look up a single asset by its asset_tag (returns null if not found). */
+    public function getAsset(string $assetTag): ?array
+    {
+        $json = $this->getJson('/api/assets/'.rawurlencode($assetTag));
+        return is_array($json) ? $json : null;
+    }
+
+    /**
+     * Submit an audit result. Returns ['ok'=>bool, 'status'=>int, 'body'=>array].
+     */
+    public function submitAudit(array $payload): array
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->post($this->baseUrl.'/api/audit/submit', $payload);
+            return ['ok' => $resp->successful(), 'status' => $resp->status(), 'body' => $resp->json() ?? []];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'status' => 0, 'body' => ['message' => $e->getMessage()]];
+        }
+    }
+
+    /** Upload one photo file and link it to an audit_result. */
+    public function uploadImage(int $auditResultId, string $filePath, string $originalName, ?string $computerName = null): bool
+    {
+        try {
+            $fields = ['audit_result_id' => (string) $auditResultId];
+            if (! empty($computerName)) {
+                $fields['computer_name'] = $computerName;
+            }
+            $resp = Http::timeout($this->timeout)
+                ->attach('image', file_get_contents($filePath), $originalName)
+                ->post($this->baseUrl.'/api/audit/upload-image', $fields);
+            return $resp->successful();
+        } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
+            return false;
+        }
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function scannedItems(int $auditId): array
     {
