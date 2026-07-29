@@ -157,6 +157,73 @@ php artisan route:cache
 php artisan view:cache
 ```
 
+---
+
+## Enable HTTPS (required for the camera "Scan" page)
+
+The **Scan** menu uses the phone camera. Browsers only allow camera access
+(`getUserMedia`) on a **secure context** — i.e. `https://` or `localhost`. Over
+a plain `http://10.0.0.x` LAN address the camera is blocked and the page falls
+back to a type-in box. To scan, serve the dashboard over HTTPS.
+
+This needs the **nginx + php-fpm** hosting from *Option B* above (`php artisan
+serve` cannot terminate TLS). Config files are in [`deploy/`](deploy/).
+
+### 1. Make a certificate for your container's IP
+
+`make-selfsigned-cert.sh` writes a self-signed cert (with the IP baked in as a
+SAN) to `/etc/ssl/glpi-dashboard/`:
+
+```bash
+hostname -I                                   # find the container IP, e.g. 10.0.0.184
+cd /opt/glpi-middleware-api/web-dashboard
+sudo bash deploy/make-selfsigned-cert.sh 10.0.0.184
+```
+
+### 2. Switch nginx to the HTTPS site
+
+```bash
+sudo cp deploy/nginx-glpi-dashboard-ssl.conf /etc/nginx/sites-available/glpi-dashboard
+sudo ln -sf /etc/nginx/sites-available/glpi-dashboard /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+ls /run/php/                                   # confirm the fpm socket, edit the conf if it isn't php8.3
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Set `APP_URL=https://10.0.0.184` in `.env`, then `php artisan config:cache`.
+HTTP is now redirected to HTTPS automatically. Open **`https://10.0.0.184`**.
+
+### 3. Trust the certificate on the phone
+
+A self-signed cert makes the browser warn once. Two choices:
+
+- **Quick:** on the phone, open `https://10.0.0.184`, tap **Advanced → Proceed
+  anyway**. The camera works immediately (bypassing the warning still counts as
+  a secure context). Chrome may re-warn after a while.
+- **No warnings (recommended for daily use):** copy the cert to the phone and
+  install it as a trusted CA.
+  ```bash
+  # from the container, serve the cert briefly, or scp it to your PC:
+  sudo cp /etc/ssl/glpi-dashboard/dashboard.crt /opt/glpi-middleware-api/web-dashboard/public/dashboard.crt
+  ```
+  On the phone open `https://10.0.0.184/dashboard.crt` to download it, then
+  **Settings → Security → Encryption & credentials → Install a certificate → CA
+  certificate** and pick the file. **Delete the public copy afterwards:**
+  `sudo rm /opt/glpi-middleware-api/web-dashboard/public/dashboard.crt`.
+
+> **Cleaner alternative — [`mkcert`](https://github.com/FiloSottile/mkcert):**
+> generates a locally-trusted CA so no device shows warnings.
+> ```bash
+> sudo apt install -y libnss3-tools && \
+>   curl -L -o mkcert https://dl.filippo.io/mkcert/latest?for=linux/amd64 && \
+>   chmod +x mkcert && sudo mv mkcert /usr/local/bin/
+> mkcert -install
+> mkcert -cert-file /etc/ssl/glpi-dashboard/dashboard.crt \
+>        -key-file  /etc/ssl/glpi-dashboard/dashboard.key 10.0.0.184
+> ```
+> Install `mkcert -CAROOT`/rootCA.pem on the phone once (as above) and every
+> cert it issues is trusted with no per-page warning.
+
 ## Troubleshooting
 
 | Symptom | Fix |
@@ -168,3 +235,6 @@ php artisan view:cache
 | Photos show as broken/placeholder | Your **browser** can't reach `http://10.0.0.184:3003` — photos load client-side. |
 | 500 error / "Database ... does not exist" | Ensure `.env` has `SESSION_DRIVER=file` (the shipped `.env.example` already sets it). |
 | Page loads but unstyled | Confirm `/css/app.css` returns 200; check `APP_URL` and file permissions. |
+| Scan page says "camera only works over HTTPS" | You opened it over `http://`. Enable HTTPS (section above) and open `https://…`. |
+| Scan page says "cannot decode QR codes" | The browser lacks `BarcodeDetector` — use **Chrome or Edge on Android**, or the Android app. |
+| Camera warning won't clear on the phone | Trust the cert (SETUP §3) or use `mkcert`; or just tap **Advanced → Proceed**. |
