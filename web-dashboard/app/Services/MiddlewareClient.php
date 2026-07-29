@@ -95,6 +95,21 @@ class MiddlewareClient
         }
     }
 
+    /**
+     * Edit an existing audit result (e.g. correct its location). Only the keys
+     * present in $payload are changed. Returns ['ok'=>bool,'status'=>int,'body'=>array].
+     */
+    public function updateResult(int $resultId, array $payload): array
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->put($this->baseUrl.'/api/audit/result/'.$resultId, $payload);
+            return ['ok' => $resp->successful(), 'status' => $resp->status(), 'body' => $resp->json() ?? []];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'status' => 0, 'body' => ['message' => $e->getMessage()]];
+        }
+    }
+
     /** Upload one photo file and link it to an audit_result. */
     public function uploadImage(int $auditResultId, string $filePath, string $originalName, ?string $computerName = null): bool
     {

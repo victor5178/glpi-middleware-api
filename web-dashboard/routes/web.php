@@ -23,4 +23,14 @@ Route::middleware('auth.glpi')->group(function () {
         ->whereNumber('auditId')
         ->whereNumber('resultId')
         ->name('scanned.show');
+
+    Route::get('/audit/{auditId}/result/{resultId}/edit', [DashboardController::class, 'edit'])
+        ->whereNumber('auditId')
+        ->whereNumber('resultId')
+        ->name('scanned.edit');
+
+    Route::put('/audit/{auditId}/result/{resultId}', [DashboardController::class, 'update'])
+        ->whereNumber('auditId')
+        ->whereNumber('resultId')
+        ->name('scanned.update');
 });

@@ -30,17 +30,21 @@
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+    @if (session('error'))
+        <div class="alert alert-warn">{{ session('error') }}</div>
+    @endif
 
     <a class="back-link" href="{{ route('dashboard', ['audit_id' => $auditId]) }}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back to dashboard
     </a>
 
-    <div class="page-head">
+    <div class="page-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <h1 class="page-title">
             {{ $item['asset_tag'] ?? 'Asset #'.($item['asset_id'] ?? '?') }}
             <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
         </h1>
+        <a class="btn btn-primary" href="{{ route('scanned.edit', ['auditId' => $auditId, 'resultId' => $resultId]) }}">Edit</a>
     </div>
 
     <div class="detail-grid">
@@ -79,7 +83,7 @@
                         <tr><th>Model</th><td>{{ $item['model'] ?? '—' }}</td></tr>
                         <tr><th>Assigned user</th><td>{{ $item['assigned_user'] ?? '—' }}</td></tr>
                         <tr><th>Actual user</th><td>{{ $item['actual_user'] ?: '—' }}</td></tr>
-                        <tr><th>Location id</th><td>{{ $item['actual_location_id'] ?? '—' }}</td></tr>
+                        <tr><th>Location</th><td>{{ $locationLabel ?? ('id '.($item['actual_location_id'] ?? '—')) }}</td></tr>
                         <tr><th>Checked by</th><td>{{ $item['checked_by'] ?: '—' }}</td></tr>
                         <tr><th>Checked at</th><td>{{ $checkedAt ?: '—' }}</td></tr>
                     </table>

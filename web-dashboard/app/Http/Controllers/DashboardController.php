@@ -43,12 +43,7 @@ class DashboardController extends Controller
 
     public function show(int $auditId, int $resultId, MiddlewareClient $client)
     {
-        $items = $client->scannedItems($auditId);
-
-        $item = collect($items)->first(
-            fn ($i) => (int) ($i['audit_result_id'] ?? 0) === $resultId
-        );
-
+        $item = $this->findResult($client, $auditId, $resultId);
         abort_if($item === null, 404, 'Scanned record not found.');
 
         // All photos for this record (there may be more than one).
@@ -62,7 +57,78 @@ class DashboardController extends Controller
             'auditId' => $auditId,
             'images' => $images,
             'client' => $client,
+            'locationLabel' => $this->locationLabel($client->locations(), $item['actual_location_id'] ?? null),
         ]);
+    }
+
+    /** Show the edit form for a scanned audit result. */
+    public function edit(int $auditId, int $resultId, MiddlewareClient $client)
+    {
+        $item = $this->findResult($client, $auditId, $resultId);
+        abort_if($item === null, 404, 'Scanned record not found.');
+
+        return view('edit', [
+            'item' => $item,
+            'auditId' => $auditId,
+            'resultId' => $resultId,
+            'locations' => $client->locations(),
+        ]);
+    }
+
+    /** Persist edits to a scanned audit result (location, user, checklist, notes). */
+    public function update(int $auditId, int $resultId, Request $request, MiddlewareClient $client)
+    {
+        $validated = $request->validate([
+            'actual_location_id' => 'required|integer',
+            'actual_user' => 'nullable|string|max:100',
+            'additional_info' => 'nullable|string',
+        ]);
+
+        $flag = fn (string $key) => $request->boolean($key) ? 1 : 0;
+
+        $payload = [
+            'actual_location_id' => (int) $validated['actual_location_id'],
+            'actual_user' => $validated['actual_user'] ?? null,
+            'additional_info' => $validated['additional_info'] ?? null,
+            'asset_found' => $flag('asset_found'),
+            'is_physical_good' => $flag('is_physical_good'),
+            'is_patch_latest' => $flag('is_patch_latest'),
+            'is_endpoint_latest' => $flag('is_endpoint_latest'),
+            'is_monitor_working' => $flag('is_monitor_working'),
+            'is_ups_working' => $flag('is_ups_working'),
+        ];
+
+        $result = $client->updateResult($resultId, $payload);
+        if (! $result['ok']) {
+            $msg = $result['body']['message'] ?? 'Failed to update the record.';
+            return back()->withInput()->with('error', $msg);
+        }
+
+        return redirect()
+            ->route('scanned.show', ['auditId' => $auditId, 'resultId' => $resultId])
+            ->with('success', 'Record updated.');
+    }
+
+    /** Find one scanned result within an audit by its audit_result_id. */
+    private function findResult(MiddlewareClient $client, int $auditId, int $resultId): ?array
+    {
+        return collect($client->scannedItems($auditId))->first(
+            fn ($i) => (int) ($i['audit_result_id'] ?? 0) === $resultId
+        );
+    }
+
+    /** Human label ("Location — Company") for a location id, or null. */
+    private function locationLabel(array $locations, $locationId): ?string
+    {
+        if ($locationId === null) {
+            return null;
+        }
+        $loc = collect($locations)->first(fn ($l) => (int) ($l['id'] ?? 0) === (int) $locationId);
+        if ($loc === null) {
+            return null;
+        }
+        $name = $loc['location_name'] ?? ('Location #'.$locationId);
+        return ! empty($loc['company_name']) ? $name.' — '.$loc['company_name'] : $name;
     }
 
     /**
