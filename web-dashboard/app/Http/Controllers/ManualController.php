@@ -118,7 +118,8 @@ class ManualController extends Controller
             'is_monitor_working' => $flag('is_monitor_working'),
             'is_ups_working' => $flag('is_ups_working'),
             'additional_info' => $validated['additional_info'] ?? null,
-            'checked_by' => $validated['checked_by'],
+            // Authoritative: always the logged-in user, not whatever was posted.
+            'checked_by' => $request->session()->get('glpi_user') ?: $validated['checked_by'],
         ];
 
         $result = $client->submitAudit($payload);

@@ -65,7 +65,6 @@
                                    'category'      => $r['type'],
                                    'model'         => $r['name'],
                                    'assigned_user' => $r['contact'],
-                                   'q'             => $q,
                                ], fn ($v) => $v !== null && $v !== '')) }}">Use this asset</a>
                         </div>
                     </div>
@@ -131,7 +130,11 @@
 
                     <div class="form-field">
                         <label>Checked by <span class="req">*</span></label>
-                        <input class="input" name="checked_by" value="{{ old('checked_by') }}" placeholder="Your name" />
+                        <input class="input" name="checked_by"
+                               value="{{ session('glpi_user') }}"
+                               readonly
+                               title="Set from your login"
+                               style="background:#eef1f5;color:var(--muted);cursor:not-allowed;" />
                     </div>
 
                     <div class="form-field">
