@@ -94,6 +94,9 @@ class ManualController extends Controller
                 'model' => $validated['model'] ?? null,
                 'category' => $this->normalizeCategory($validated['category']),
                 'assigned_user' => $validated['assigned_user'] ?? null,
+                // assets.location_id is NOT NULL — seed a new asset with the
+                // location being audited (COALESCE keeps it on later updates).
+                'location_id' => (int) $validated['actual_location_id'],
             ]);
         }
 
