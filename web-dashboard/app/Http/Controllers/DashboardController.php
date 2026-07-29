@@ -100,7 +100,14 @@ class DashboardController extends Controller
 
         $result = $client->updateResult($resultId, $payload);
         if (! $result['ok']) {
-            $msg = $result['body']['message'] ?? 'Failed to update the record.';
+            $status = (int) ($result['status'] ?? 0);
+            $msg = $result['body']['message'] ?? ('Update failed (HTTP '.$status.').');
+            if ($status === 404) {
+                $msg = 'The update endpoint was not found (HTTP 404) — restart the middleware so the new '
+                     .'PUT /api/audit/result/:id route loads, then try again.';
+            } elseif ($status === 0) {
+                $msg = 'Could not reach the middleware to save the change. '.$msg;
+            }
             return back()->withInput()->with('error', $msg);
         }
 
