@@ -38,6 +38,43 @@ class GlpiClient
     }
 
     /**
+     * Verifies a username/password against GLPI (used by the dashboard login).
+     * Only needs GLPI_URL + GLPI_APP_TOKEN configured — not the service account.
+     */
+    public function attemptLogin(string $username, string $password): bool
+    {
+        if ($this->baseUrl === '' || $this->appToken === '') {
+            $this->lastError = 'GLPI is not configured on the server (GLPI_URL / GLPI_APP_TOKEN).';
+            return false;
+        }
+        try {
+            $resp = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'Authorization' => 'Basic '.base64_encode("{$username}:{$password}"),
+                    'App-Token' => $this->appToken,
+                ])
+                ->get($this->baseUrl.'/initSession');
+
+            if (! $resp->successful()) {
+                $body = $resp->json();
+                $msg = is_array($body) ? implode(' — ', array_filter($body, 'is_string')) : $resp->body();
+                $this->lastError = 'Login failed (HTTP '.$resp->status().')'.($msg ? ': '.$msg : '');
+                return false;
+            }
+            $token = $resp->json('session_token');
+            if (! $token) {
+                $this->lastError = 'GLPI did not return a session token.';
+                return false;
+            }
+            $this->killSession($token); // don't leave the session open
+            return true;
+        } catch (\Throwable $e) {
+            $this->lastError = 'Could not reach GLPI at '.$this->baseUrl.' ('.$e->getMessage().').';
+            return false;
+        }
+    }
+
+    /**
      * Search GLPI by a free-text query (serial / user / id).
      *
      * @return array<int, array<string, mixed>> normalized results

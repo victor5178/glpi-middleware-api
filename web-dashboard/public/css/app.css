@@ -161,6 +161,7 @@ a:hover { text-decoration: underline; }
 .nav-link { color: #fff; font-size: .9rem; padding: 7px 12px; border-radius: 8px; }
 .nav-link:hover { background: rgba(255,255,255,.15); text-decoration: none; }
 .nav-link.primary { background: rgba(255,255,255,.18); font-weight: 600; }
+.nav-user { color: rgba(255,255,255,.85); font-size: .85rem; padding: 0 4px; }
 @media (max-width: 640px) {
     .form-grid, .checks-grid { grid-template-columns: 1fr; }
 }
