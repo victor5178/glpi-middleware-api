@@ -190,6 +190,7 @@ a:hover { text-decoration: underline; }
 }
 .side-link:hover { background: #f2f5f9; text-decoration: none; }
 .side-link.primary { color: var(--brand); }
+.side-link.active { background: var(--brand-100, #e8f0fe); color: var(--brand); font-weight: 700; box-shadow: inset 3px 0 0 var(--brand); }
 .sidebar-foot { border-top: 1px solid var(--line); padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sidebar-foot .nav-user { color: var(--muted); }
 @media (max-width: 640px) {

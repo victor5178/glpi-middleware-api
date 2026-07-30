@@ -37,10 +37,10 @@
             <label for="navToggle" class="sidebar-close" role="button" tabindex="0" aria-label="Close menu">✕</label>
         </div>
         <nav class="sidebar-nav">
-            <a class="side-link" href="{{ route('dashboard') }}">Dashboard</a>
-            <a class="side-link" href="{{ route('asset-review') }}">Asset Review</a>
-            <a class="side-link" href="{{ route('scan') }}">Scan</a>
-            <a class="side-link primary" href="{{ route('manual.create') }}">+ Manual entry</a>
+            <a class="side-link @class(['active' => request()->routeIs('dashboard', 'scanned.*')])" href="{{ route('dashboard') }}">Dashboard</a>
+            <a class="side-link @class(['active' => request()->routeIs('asset-review')])" href="{{ route('asset-review') }}">Asset Review</a>
+            <a class="side-link @class(['active' => request()->routeIs('scan')])" href="{{ route('scan') }}">Scan</a>
+            <a class="side-link primary @class(['active' => request()->routeIs('manual.*')])" href="{{ route('manual.create') }}">+ Manual entry</a>
         </nav>
         @if (session('glpi_user'))
             <div class="sidebar-foot">
