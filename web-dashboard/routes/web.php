@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AssetReviewController;
+use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualController;
@@ -37,4 +38,11 @@ Route::middleware('auth.glpi')->group(function () {
         ->whereNumber('auditId')
         ->whereNumber('resultId')
         ->name('scanned.update');
+
+    Route::delete('/audit/{auditId}/result/{resultId}', [DashboardController::class, 'destroy'])
+        ->whereNumber('auditId')
+        ->whereNumber('resultId')
+        ->name('scanned.destroy');
+
+    Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
 });

@@ -91,7 +91,10 @@ class DashboardController extends Controller
 
         $flag = fn (string $key) => $request->boolean($key) ? 1 : 0;
 
+        $actor = $request->session()->get('glpi_user');
+
         $payload = [
+            'actor' => $actor,
             'actual_location_id' => (int) $validated['actual_location_id'],
             'actual_user' => $validated['actual_user'] ?? null,
             'additional_info' => $validated['additional_info'] ?? null,
@@ -119,7 +122,7 @@ class DashboardController extends Controller
         // Photo edits: delete the ones ticked for removal, then add any uploads.
         $removed = 0;
         foreach ((array) $request->input('remove_images', []) as $path) {
-            if ($path !== '' && $client->deleteImage($resultId, $path)) {
+            if ($path !== '' && $client->deleteImage($resultId, $path, $actor)) {
                 $removed++;
             }
         }
@@ -141,6 +144,20 @@ class DashboardController extends Controller
         return redirect()
             ->route('scanned.show', ['auditId' => $auditId, 'resultId' => $resultId])
             ->with('success', $flash);
+    }
+
+    /** Delete a scanned audit result (archived to the audit trail server-side). */
+    public function destroy(int $auditId, int $resultId, Request $request, MiddlewareClient $client)
+    {
+        $result = $client->deleteResult($resultId, $request->session()->get('glpi_user'));
+        if (! $result['ok']) {
+            $msg = $result['body']['message'] ?? 'Failed to delete the record.';
+            return back()->with('error', $msg);
+        }
+
+        return redirect()
+            ->route('dashboard', ['audit_id' => $auditId])
+            ->with('success', "Record #{$resultId} deleted (archived in the audit trail).");
     }
 
     /** Find one scanned result within an audit by its audit_result_id. */

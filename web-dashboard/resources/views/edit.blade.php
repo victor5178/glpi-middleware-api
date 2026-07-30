@@ -138,10 +138,20 @@
             </div>
         </div>
 
-        <div style="display:flex;gap:10px;margin-top:18px;">
+        <div style="display:flex;gap:10px;margin-top:18px;align-items:center;">
             <button type="submit" class="btn btn-primary">Save changes</button>
             <a class="btn btn-ghost" href="{{ route('scanned.show', ['auditId' => $auditId, 'resultId' => $resultId]) }}">Cancel</a>
         </div>
+    </form>
+
+    {{-- Delete this record (archived to the Audit Trail) --}}
+    <form method="post" action="{{ route('scanned.destroy', ['auditId' => $auditId, 'resultId' => $resultId]) }}"
+          onsubmit="return confirm('Delete this record? It will be archived in the Audit Trail and can be reviewed there.');"
+          style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line);">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn" style="background:var(--danger,#b91c1c);color:#fff;">Delete record</button>
+        <span style="color:var(--muted);font-size:.82rem;margin-left:8px;">Removes this scanned result; a full snapshot is kept in the Audit Trail.</span>
     </form>
 
     {{-- Camera capture + client-side compression + removable previews for new photos --}}

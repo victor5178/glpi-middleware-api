@@ -174,12 +174,30 @@ class MiddlewareClient
         }, $json['images'])));
     }
 
-    /** Delete one photo (file + DB rows) from an audit result. */
-    public function deleteImage(int $auditResultId, string $path): bool
+    /** @return array<int, array<string, mixed>> Audit-trail entries (newest first). */
+    public function auditTrail(array $filters = []): array
+    {
+        return $this->getData('/api/audit-trail', array_merge(['limit' => 300], $filters), 'data');
+    }
+
+    /** Delete a whole scanned audit result (archived server-side). */
+    public function deleteResult(int $auditResultId, ?string $actor = null): array
     {
         try {
             $resp = Http::timeout($this->timeout)->acceptJson()
-                ->delete($this->baseUrl.'/api/audit/result/'.$auditResultId.'/image', ['path' => $path]);
+                ->delete($this->baseUrl.'/api/audit/result/'.$auditResultId, array_filter(['actor' => $actor]));
+            return ['ok' => $resp->successful(), 'status' => $resp->status(), 'body' => $resp->json() ?? []];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'status' => 0, 'body' => ['message' => $e->getMessage()]];
+        }
+    }
+
+    /** Delete one photo (file + DB rows) from an audit result. */
+    public function deleteImage(int $auditResultId, string $path, ?string $actor = null): bool
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->delete($this->baseUrl.'/api/audit/result/'.$auditResultId.'/image', array_filter(['path' => $path, 'actor' => $actor]));
             if (! $resp->successful()) {
                 $this->lastError = $resp->json('message') ?? "Delete failed (HTTP {$resp->status()}).";
                 return false;
