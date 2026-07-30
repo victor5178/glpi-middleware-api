@@ -60,6 +60,10 @@
             $fmt = fn ($t) => ! empty($t)
                 ? \Illuminate\Support\Carbon::parse($t, 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
                 : '—';
+            $thumb = function ($it) use ($client) {
+                $rid = (int) ($it['audit_result_id'] ?? 0);
+                return (! empty($it['img_dir']) && $rid > 0) ? $client->imageUrl($rid) : null;
+            };
         @endphp
 
         <div class="report">
@@ -92,12 +96,13 @@
             @elseif ($type === 'scanned')
                 <table class="report-table">
                     <thead><tr>
-                        <th>#</th><th>Asset tag</th><th>Serial</th><th>Model</th><th>User</th><th>Company</th><th>Found</th><th>Checked by</th><th>Checked at</th>
+                        <th>#</th><th>Photo</th><th>Asset tag</th><th>Serial</th><th>Model</th><th>User</th><th>Company</th><th>Found</th><th>Checked by</th><th>Checked at</th>
                     </tr></thead>
                     <tbody>
                         @foreach ($items as $i => $it)
                             <tr>
                                 <td>{{ $i + 1 }}</td>
+                                <td>@php $u = $thumb($it); @endphp @if($u)<img class="report-thumb" src="{{ $u }}" alt="">@else—@endif</td>
                                 <td>{{ $it['asset_tag'] ?? '—' }}</td>
                                 <td>{{ $it['serial_number'] ?? '—' }}</td>
                                 <td>{{ $it['model'] ?? '—' }}</td>
@@ -114,12 +119,13 @@
             @elseif ($type === 'review')
                 <table class="report-table">
                     <thead><tr>
-                        <th>#</th><th>Asset tag</th><th>User</th><th>Found</th><th>Physical</th><th>Patches</th><th>Endpoint</th><th>Monitor</th><th>UPS</th><th>Notes</th>
+                        <th>#</th><th>Photo</th><th>Asset tag</th><th>User</th><th>Found</th><th>Physical</th><th>Patches</th><th>Endpoint</th><th>Monitor</th><th>UPS</th><th>Notes</th>
                     </tr></thead>
                     <tbody>
                         @foreach ($items as $i => $it)
                             <tr>
                                 <td>{{ $i + 1 }}</td>
+                                <td>@php $u = $thumb($it); @endphp @if($u)<img class="report-thumb" src="{{ $u }}" alt="">@else—@endif</td>
                                 <td>{{ $it['asset_tag'] ?? '—' }}</td>
                                 <td>{{ ($it['actual_user'] ?? '') ?: ($it['assigned_user'] ?? '—') }}</td>
                                 <td>{{ $yesNo($it['asset_found'] ?? null) }}</td>
@@ -140,12 +146,13 @@
                     <h3 class="report-group">{{ $comp }} <span>({{ $gt }} assets · {{ $g['found'] }} found · {{ $g['missing'] }} missing)</span></h3>
                     <table class="report-table">
                         <thead><tr>
-                            <th>#</th><th>Asset tag</th><th>Serial</th><th>Model</th><th>User</th><th>Found</th><th>Checked at</th>
+                            <th>#</th><th>Photo</th><th>Asset tag</th><th>Serial</th><th>Model</th><th>User</th><th>Found</th><th>Checked at</th>
                         </tr></thead>
                         <tbody>
                             @foreach ($g['items'] as $i => $it)
                                 <tr>
                                     <td>{{ $i + 1 }}</td>
+                                    <td>@php $u = $thumb($it); @endphp @if($u)<img class="report-thumb" src="{{ $u }}" alt="">@else—@endif</td>
                                     <td>{{ $it['asset_tag'] ?? '—' }}</td>
                                     <td>{{ $it['serial_number'] ?? '—' }}</td>
                                     <td>{{ $it['model'] ?? '—' }}</td>

@@ -96,6 +96,7 @@ class ReportController extends Controller
             'stats' => $stats,
             'error' => $client->lastError,
             'generatedBy' => $request->session()->get('glpi_user'),
+            'client' => $client,
         ]);
     }
 }
