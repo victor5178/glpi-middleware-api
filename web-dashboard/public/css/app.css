@@ -288,6 +288,36 @@ a:hover { text-decoration: underline; }
 .user-group .user-name { flex: 1; }
 .user-group .grid { padding: 0 14px 14px; }
 
+/* ---------- Report ---------- */
+.report { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow); }
+.report-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid var(--brand); padding-bottom: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.report-brand { font-size: 1.35rem; font-weight: 800; color: var(--brand); }
+.report-title { font-size: 1rem; color: var(--muted); margin-top: 2px; }
+.report-meta { font-size: .82rem; color: #374151; text-align: right; line-height: 1.55; }
+.report-summary { width: 100%; border-collapse: collapse; margin: 6px 0 18px; }
+.report-summary td { border: 1px solid var(--line); text-align: center; padding: 10px; width: 25%; }
+.report-summary .n { display: block; font-size: 1.4rem; font-weight: 800; }
+.report-summary .l { display: block; font-size: .76rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.report-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: .84rem; }
+.report-table th, .report-table td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: top; }
+.report-table thead th { background: #f2f5f9; font-weight: 700; }
+.report-table tbody tr:nth-child(even) { background: #fafbfc; }
+.report-group { margin: 20px 0 8px; font-size: 1rem; }
+.report-group span { color: var(--muted); font-weight: 500; font-size: .84rem; }
+.report-foot { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; color: var(--muted); font-size: .78rem; text-align: center; }
+
+/* ---------- Print ---------- */
+@media print {
+    .topbar, .sidebar, .nav-overlay, .footer, .no-print, .report-toolbar { display: none !important; }
+    body { background: #fff; }
+    .container.page { padding: 0; max-width: none; }
+    .report { border: 0; box-shadow: none; padding: 0; border-radius: 0; }
+    .report-table thead th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-table { font-size: 11px; }
+    .report-table tr, .report-group { break-inside: avoid; }
+    a { color: #000; text-decoration: none; }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
     .stats { grid-template-columns: repeat(2, 1fr); }

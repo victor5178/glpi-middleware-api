@@ -44,6 +44,7 @@
             <a class="side-link @class(['active' => request()->routeIs('dashboard', 'scanned.*')])" href="{{ route('dashboard') }}">Dashboard</a>
             <a class="side-link @class(['active' => request()->routeIs('asset-review')])" href="{{ route('asset-review') }}">Asset Review</a>
             <a class="side-link @class(['active' => request()->routeIs('audit-trail')])" href="{{ route('audit-trail') }}">Audit Trail</a>
+            <a class="side-link @class(['active' => request()->routeIs('report')])" href="{{ route('report') }}">Report</a>
             <a class="side-link @class(['active' => request()->routeIs('scan')])" href="{{ route('scan') }}">Scan</a>
             <a class="side-link primary @class(['active' => request()->routeIs('manual.*')])" href="{{ route('manual.create') }}">+ Manual entry</a>
         </nav>
