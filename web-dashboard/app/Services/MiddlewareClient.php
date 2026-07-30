@@ -154,6 +154,44 @@ class MiddlewareClient
     }
 
     /**
+     * Like {@see resultImages()} but keeps each photo's server-side path (needed
+     * to delete it) alongside its browser URL.
+     *
+     * @return array<int, array{path:string, url:string}>
+     */
+    public function resultImageList(int $auditResultId): array
+    {
+        $json = $this->getJson("/api/audit/result/{$auditResultId}/images");
+        if ($json === null || ! is_array($json['images'] ?? null)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(function ($img) {
+            if (! isset($img['url'])) {
+                return null;
+            }
+            return ['path' => (string) ($img['path'] ?? ''), 'url' => $this->baseUrl.$img['url']];
+        }, $json['images'])));
+    }
+
+    /** Delete one photo (file + DB rows) from an audit result. */
+    public function deleteImage(int $auditResultId, string $path): bool
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->delete($this->baseUrl.'/api/audit/result/'.$auditResultId.'/image', ['path' => $path]);
+            if (! $resp->successful()) {
+                $this->lastError = $resp->json('message') ?? "Delete failed (HTTP {$resp->status()}).";
+                return false;
+            }
+            return true;
+        } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
      * GET a JSON endpoint and pull a nested key (e.g. paginated "data").
      *
      * @return array<int, array<string, mixed>>

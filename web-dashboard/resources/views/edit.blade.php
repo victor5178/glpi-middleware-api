@@ -25,9 +25,11 @@
         </div>
     @endif
 
-    <form method="post" action="{{ route('scanned.update', ['auditId' => $auditId, 'resultId' => $resultId]) }}">
+    <form method="post" action="{{ route('scanned.update', ['auditId' => $auditId, 'resultId' => $resultId]) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
+        <input type="hidden" name="asset_tag" value="{{ $item['asset_tag'] ?? '' }}">
+        <input type="hidden" name="serial_number" value="{{ $item['serial_number'] ?? '' }}">
 
         <div class="card">
             <div class="card-body">
@@ -88,6 +90,42 @@
                 <div class="form-field" style="margin-top:14px;">
                     <label>Notes</label>
                     <textarea class="textarea" name="additional_info">{{ old('additional_info', $item['additional_info'] ?? '') }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+            <div class="card-body">
+                <div class="section-label" style="margin-top:0;">Photos</div>
+
+                @if (! empty($images))
+                    <p style="color:var(--muted);font-size:.82rem;margin:0 0 10px;">
+                        Tick a photo to remove it — removal deletes the file from the server when you save.
+                        Hover a photo to zoom.
+                    </p>
+                    <div class="edit-photos">
+                        @foreach ($images as $img)
+                            <label class="edit-photo">
+                                <span class="zoom-wrap">
+                                    <img src="{{ $img['url'] }}" alt="Audit photo" loading="lazy">
+                                </span>
+                                <span class="edit-photo-remove">
+                                    <input type="checkbox" name="remove_images[]" value="{{ $img['path'] }}">
+                                    Remove
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                @else
+                    <p style="color:var(--muted);margin:0 0 10px;">No photos attached to this record.</p>
+                @endif
+
+                <div class="form-field" style="margin-top:14px;">
+                    <label>Add photos</label>
+                    <div class="file-drop">
+                        <input type="file" name="photos[]" accept="image/*" multiple>
+                    </div>
+                    <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">Select one or more image files to add (up to 50 MB each).</p>
                 </div>
             </div>
         </div>

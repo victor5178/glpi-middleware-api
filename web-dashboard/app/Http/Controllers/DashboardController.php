@@ -72,6 +72,7 @@ class DashboardController extends Controller
             'auditId' => $auditId,
             'resultId' => $resultId,
             'locations' => $client->locations(),
+            'images' => $client->resultImageList($resultId),
         ]);
     }
 
@@ -82,6 +83,10 @@ class DashboardController extends Controller
             'actual_location_id' => 'required|integer',
             'actual_user' => 'nullable|string|max:100',
             'additional_info' => 'nullable|string',
+            'asset_tag' => 'nullable|string|max:100',
+            'remove_images' => 'nullable|array',
+            'remove_images.*' => 'string',
+            'photos.*' => 'nullable|image|max:51200', // 50 MB, matches middleware
         ]);
 
         $flag = fn (string $key) => $request->boolean($key) ? 1 : 0;
@@ -111,9 +116,31 @@ class DashboardController extends Controller
             return back()->withInput()->with('error', $msg);
         }
 
+        // Photo edits: delete the ones ticked for removal, then add any uploads.
+        $removed = 0;
+        foreach ((array) $request->input('remove_images', []) as $path) {
+            if ($path !== '' && $client->deleteImage($resultId, $path)) {
+                $removed++;
+            }
+        }
+
+        $added = 0;
+        foreach ((array) $request->file('photos', []) as $file) {
+            if (! $file || ! $file->isValid()) {
+                continue;
+            }
+            if ($client->uploadImage($resultId, $file->getRealPath(), $file->getClientOriginalName(), $validated['asset_tag'] ?? null)) {
+                $added++;
+            }
+        }
+
+        $flash = 'Record updated.';
+        if ($removed > 0) $flash .= " $removed photo(s) removed.";
+        if ($added > 0) $flash .= " $added photo(s) added.";
+
         return redirect()
             ->route('scanned.show', ['auditId' => $auditId, 'resultId' => $resultId])
-            ->with('success', 'Record updated.');
+            ->with('success', $flash);
     }
 
     /** Find one scanned result within an audit by its audit_result_id. */

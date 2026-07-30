@@ -223,6 +223,23 @@ a:hover { text-decoration: underline; }
 }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
+/* ---------- Hover-zoom ---------- */
+/* Zoom the image within its frame on hover (frame clips the overflow). */
+.zoom-wrap { overflow: hidden; border-radius: 8px; display: block; }
+.zoom-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .28s ease; cursor: zoom-in; }
+.zoom-wrap:hover img { transform: scale(2); }
+.photo-frame img { transition: transform .28s ease; cursor: zoom-in; }
+.photo-frame:hover img { transform: scale(1.6); }
+.thumb-sm { transition: transform .2s ease; }
+.thumb-sm:hover { transform: scale(1.15); }
+
+/* ---------- Edit: photo management ---------- */
+.edit-photos { display: flex; flex-wrap: wrap; gap: 12px; }
+.edit-photo { display: flex; flex-direction: column; gap: 6px; width: 132px; }
+.edit-photo .zoom-wrap { width: 132px; height: 132px; border: 1px solid var(--line); background: #f3f5f8; }
+.edit-photo-remove { display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); cursor: pointer; }
+.edit-photo-remove input { cursor: pointer; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
