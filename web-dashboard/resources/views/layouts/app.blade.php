@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'GLPI Audit Dashboard')</title>
+    <title>@yield('title', 'ITD Dashboard')</title>
     <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
@@ -21,8 +21,12 @@
                         <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
                     </svg>
                 </span>
-                GLPI Audit Dashboard
+                ITD Dashboard
             </a>
+            <nav class="top-actions">
+                <a class="nav-link" href="{{ route('scan') }}">Scan</a>
+                <a class="nav-link primary" href="{{ route('manual.create') }}">+ Manual entry</a>
+            </nav>
             @if (session('glpi_user'))
                 <span class="nav-user topbar-user">{{ session('glpi_user') }}</span>
             @endif

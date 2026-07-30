@@ -166,8 +166,12 @@ a:hover { text-decoration: underline; }
 /* ---------- Left navigation drawer ---------- */
 .hamburger { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; padding: 6px; margin-right: 4px; border-radius: 8px; }
 .hamburger:hover { background: rgba(255,255,255,.15); }
-.topbar .brand { margin-right: auto; }          /* push user to the far right */
-.topbar-user { }
+.topbar .brand { margin-right: auto; }          /* push actions + user to the right */
+.top-actions { display: flex; align-items: center; gap: 4px; }
+@media (max-width: 380px) {
+    .topbar-user { display: none; }             /* keep Scan / Manual entry visible on tiny screens */
+    .brand { font-size: 1rem; }
+}
 .nav-overlay {
     position: fixed; inset: 0; background: rgba(15,23,42,.45);
     opacity: 0; visibility: hidden; transition: opacity .25s ease; z-index: 1100;
