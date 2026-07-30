@@ -28,7 +28,7 @@ class DashboardController extends Controller
 
         $selectedAudit = collect($audits)->firstWhere('id', $selectedAuditId);
 
-        $groups = $this->groupByCompany($items, $client->locations(), $selectedAudit);
+        $groups = $this->groupBySiteAndUser($items, $client->locations(), $selectedAudit);
 
         return view('dashboard', [
             'audits' => $audits,
@@ -166,19 +166,20 @@ class DashboardController extends Controller
     }
 
     /**
-     * Groups scanned items by the company of their location.
-     * Location comes from the item's actual_location_id, falling back to the
-     * audit's location; company is resolved via the middleware locations list.
+     * Groups scanned items first by site (the company of their location), then
+     * by user within each site. Location comes from the item's
+     * actual_location_id (falling back to the audit's location); the user is the
+     * actual user, else the assigned user, with any "@device" suffix stripped.
      *
-     * @return array<string, array<int, array<string, mixed>>>
+     * @return array<string, array<string, array<int, array<string, mixed>>>>
      */
-    private function groupByCompany(array $items, array $locations, ?array $selectedAudit): array
+    private function groupBySiteAndUser(array $items, array $locations, ?array $selectedAudit): array
     {
         if (empty($items)) {
             return [];
         }
 
-        // location_id => company_name
+        // location_id => company_name (the "site")
         $companyByLocation = [];
         foreach ($locations as $loc) {
             if (isset($loc['id'])) {
@@ -191,19 +192,31 @@ class DashboardController extends Controller
         $groups = [];
         foreach ($items as $item) {
             $locId = $item['actual_location_id'] ?? $auditLocationId;
-            $company = ($locId !== null && isset($companyByLocation[(int) $locId]))
+            $site = ($locId !== null && ! empty($companyByLocation[(int) $locId]))
                 ? $companyByLocation[(int) $locId]
-                : null;
-            $company = $company ?: 'Unassigned';
-            $groups[$company][] = $item;
+                : 'Unassigned site';
+
+            $raw = trim((string) (($item['actual_user'] ?? '') ?: ($item['assigned_user'] ?? '')));
+            if (str_contains($raw, '@')) {
+                $raw = trim(substr($raw, 0, strpos($raw, '@'))); // drop "@DEVICE-TAG"
+            }
+            $user = ($raw === '' || $raw === '-') ? 'Unassigned user' : $raw;
+
+            $groups[$site][$user][] = $item;
         }
 
-        // Sort company names alphabetically, keeping "Unassigned" last.
-        uksort($groups, function ($a, $b) {
-            if ($a === 'Unassigned') return 1;
-            if ($b === 'Unassigned') return -1;
+        // Sort sites, then users within each — keeping the "Unassigned" buckets last.
+        $last = fn (string $s) => str_starts_with($s, 'Unassigned');
+        $cmp = function ($a, $b) use ($last) {
+            if ($last($a) && ! $last($b)) return 1;
+            if ($last($b) && ! $last($a)) return -1;
             return strcasecmp($a, $b);
-        });
+        };
+        uksort($groups, $cmp);
+        foreach ($groups as &$users) {
+            uksort($users, $cmp);
+        }
+        unset($users);
 
         return $groups;
     }

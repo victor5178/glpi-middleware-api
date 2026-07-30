@@ -240,6 +240,19 @@ a:hover { text-decoration: underline; }
 .edit-photo-remove { display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); cursor: pointer; }
 .edit-photo-remove input { cursor: pointer; }
 
+/* ---------- Dashboard: collapsible user groups (Site → User → assets) ---------- */
+.user-group { border: 1px solid var(--line); border-radius: 10px; margin: 8px 0; background: #fff; overflow: hidden; }
+.user-group > summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px; font-weight: 600; color: var(--text, #1f2937);
+}
+.user-group > summary::-webkit-details-marker { display: none; }
+.user-group > summary::before { content: '▸'; color: var(--muted); transition: transform .15s ease; }
+.user-group[open] > summary::before { transform: rotate(90deg); }
+.user-group > summary:hover { background: #f7f9fc; }
+.user-group .user-name { flex: 1; }
+.user-group .grid { padding: 0 14px 14px; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
