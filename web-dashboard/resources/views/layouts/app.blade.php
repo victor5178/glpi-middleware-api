@@ -19,6 +19,7 @@
             </a>
             <nav class="nav-links">
                 <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ route('asset-review') }}">Asset Review</a>
                 <a class="nav-link" href="{{ route('scan') }}">Scan</a>
                 <a class="nav-link primary" href="{{ route('manual.create') }}">+ Manual entry</a>
                 @if (session('glpi_user'))

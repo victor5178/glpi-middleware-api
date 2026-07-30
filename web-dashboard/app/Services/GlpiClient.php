@@ -152,6 +152,75 @@ class GlpiClient
         return $results;
     }
 
+    /**
+     * List GLPI assets across the searched item types (optionally filtered by a
+     * free-text term matched against name / serial / asset tag / user /
+     * location). Used by Asset Review to reconcile inventory against audits.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAssets(?string $username, ?string $password, string $filter = ''): array
+    {
+        if ($username !== null && $username !== '' && $password !== null && $password !== '') {
+            $session = $this->attemptLogin($username, $password);
+        } elseif ($this->isConfigured()) {
+            $session = $this->initSession();
+        } else {
+            $this->lastError = 'GLPI is not configured. Log in again, or set GLPI_LOGIN / GLPI_PASSWORD for a service account.';
+            return [];
+        }
+        if ($session === null) {
+            return [];
+        }
+
+        $needle = trim(mb_strtolower($filter));
+        $results = [];
+        try {
+            foreach ($this->types as $type) {
+                foreach ($this->listType($type, $session) as $it) {
+                    $entry = [
+                        'type' => $type,
+                        'id' => $it['id'] ?? null,
+                        'name' => $it['name'] ?? null,
+                        'serial' => $it['serial'] ?? null,
+                        'otherserial' => $it['otherserial'] ?? null,
+                        'contact' => $it['contact'] ?? null,
+                        'location' => is_string($it['locations_id'] ?? null) ? $it['locations_id'] : null,
+                    ];
+                    if ($needle !== '') {
+                        $hay = mb_strtolower(implode(' ', array_filter([
+                            $entry['name'], $entry['serial'], $entry['otherserial'], $entry['contact'], $entry['location'],
+                        ], fn ($v) => is_string($v) && $v !== '')));
+                        if (! str_contains($hay, $needle)) {
+                            continue;
+                        }
+                    }
+                    $results[] = $entry;
+                }
+            }
+        } finally {
+            $this->killSession($session);
+        }
+
+        return $results;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function listType(string $type, string $session): array
+    {
+        // expand_dropdowns returns location/user as names (not ids) for filtering.
+        $url = $this->baseUrl.'/'.$type.'?range=0-999&expand_dropdowns=true';
+        try {
+            $resp = Http::timeout($this->timeout * 2)
+                ->withHeaders(['App-Token' => $this->appToken, 'Session-Token' => $session])
+                ->get($url);
+            $json = $resp->successful() ? $resp->json() : null;
+            return is_array($json) ? array_filter($json, 'is_array') : [];
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     protected function initSession(): ?string
     {
         try {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AssetReviewController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualController;
@@ -19,6 +20,8 @@ Route::middleware('auth.glpi')->group(function () {
     Route::get('/manual/check-duplicate', [ManualController::class, 'checkDuplicate'])->name('manual.check');
 
     Route::get('/scan', [ManualController::class, 'scan'])->name('scan');
+
+    Route::get('/asset-review', [AssetReviewController::class, 'index'])->name('asset-review');
 
     Route::get('/audit/{auditId}/result/{resultId}', [DashboardController::class, 'show'])
         ->whereNumber('auditId')
