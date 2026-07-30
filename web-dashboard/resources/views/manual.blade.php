@@ -178,10 +178,17 @@
         <div class="card" style="margin-top:16px;">
             <div class="card-body">
                 <div class="section-label" style="margin-top:0;">Photos</div>
-                <div class="file-drop">
-                    <input type="file" name="photos[]" id="photoInput" accept="image/*" multiple>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <label class="btn btn-primary" style="cursor:pointer;">
+                        📷 Take photo
+                        <input type="file" id="photoCapture" accept="image/*" capture="environment" hidden>
+                    </label>
+                    <label class="btn btn-ghost" style="cursor:pointer;">
+                        Choose files
+                        <input type="file" name="photos[]" id="photoInput" accept="image/*" multiple hidden>
+                    </label>
                 </div>
-                <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">Select one or more image files (up to 50 MB each). Choose again to add more; hover a photo to zoom.</p>
+                <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">Photos are compressed automatically before upload. Take a photo or add files; hover a photo to zoom, ✕ to remove.</p>
                 <div id="photoPreview" class="edit-photos" style="margin-top:12px;"></div>
             </div>
         </div>
@@ -251,57 +258,15 @@
     })();
     </script>
 
-    {{-- Photo previews with per-file remove (before submitting) --}}
+    {{-- Camera capture + client-side compression + removable previews --}}
+    <script src="/js/photo-input.js"></script>
     <script>
-    (function () {
-        var input = document.getElementById('photoInput');
-        var preview = document.getElementById('photoPreview');
-        if (!input || !preview || typeof DataTransfer === 'undefined') return;
-
-        var dt = new DataTransfer();
-
-        input.addEventListener('change', function () {
-            // Append the newly chosen files so re-picking adds instead of replacing.
-            for (var i = 0; i < input.files.length; i++) dt.items.add(input.files[i]);
-            input.files = dt.files;
-            render();
+        PhotoInput.enhance({
+            input: document.getElementById('photoInput'),
+            captureInput: document.getElementById('photoCapture'),
+            preview: document.getElementById('photoPreview'),
+            maxEdge: 2000, quality: 0.7
         });
-
-        function removeAt(idx) {
-            var next = new DataTransfer();
-            for (var i = 0; i < dt.files.length; i++) if (i !== idx) next.items.add(dt.files[i]);
-            dt = next;
-            input.files = dt.files;
-            render();
-        }
-
-        function render() {
-            preview.innerHTML = '';
-            for (var i = 0; i < dt.files.length; i++) {
-                (function (idx) {
-                    var url = URL.createObjectURL(dt.files[idx]);
-                    var cell = document.createElement('label');
-                    cell.className = 'edit-photo';
-
-                    var zoom = document.createElement('span');
-                    zoom.className = 'zoom-wrap';
-                    var img = document.createElement('img');
-                    img.src = url;
-                    img.onload = function () { URL.revokeObjectURL(url); };
-                    zoom.appendChild(img);
-
-                    var rm = document.createElement('span');
-                    rm.className = 'edit-photo-remove';
-                    rm.textContent = '✕ Remove';
-                    rm.addEventListener('click', function (e) { e.preventDefault(); removeAt(idx); });
-
-                    cell.appendChild(zoom);
-                    cell.appendChild(rm);
-                    preview.appendChild(cell);
-                })(i);
-            }
-        }
-    })();
     </script>
 
 @endsection

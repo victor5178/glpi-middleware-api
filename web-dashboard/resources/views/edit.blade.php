@@ -122,10 +122,18 @@
 
                 <div class="form-field" style="margin-top:14px;">
                     <label>Add photos</label>
-                    <div class="file-drop">
-                        <input type="file" name="photos[]" accept="image/*" multiple>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label class="btn btn-primary" style="cursor:pointer;">
+                            📷 Take photo
+                            <input type="file" id="photoCapture" accept="image/*" capture="environment" hidden>
+                        </label>
+                        <label class="btn btn-ghost" style="cursor:pointer;">
+                            Choose files
+                            <input type="file" name="photos[]" id="photoInput" accept="image/*" multiple hidden>
+                        </label>
                     </div>
-                    <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">Select one or more image files to add (up to 50 MB each).</p>
+                    <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">New photos are compressed automatically before upload. Hover to zoom, ✕ to remove before saving.</p>
+                    <div id="photoPreview" class="edit-photos" style="margin-top:12px;"></div>
                 </div>
             </div>
         </div>
@@ -135,5 +143,16 @@
             <a class="btn btn-ghost" href="{{ route('scanned.show', ['auditId' => $auditId, 'resultId' => $resultId]) }}">Cancel</a>
         </div>
     </form>
+
+    {{-- Camera capture + client-side compression + removable previews for new photos --}}
+    <script src="/js/photo-input.js"></script>
+    <script>
+        PhotoInput.enhance({
+            input: document.getElementById('photoInput'),
+            captureInput: document.getElementById('photoCapture'),
+            preview: document.getElementById('photoPreview'),
+            maxEdge: 2000, quality: 0.7
+        });
+    </script>
 
 @endsection
