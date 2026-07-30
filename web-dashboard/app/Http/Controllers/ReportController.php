@@ -23,6 +23,7 @@ class ReportController extends Controller
             $type = 'scanned';
         }
         $company = trim((string) $request->query('company', ''));
+        $withPhotos = $request->query('photos', '1') !== '0';
         $ran = $auditId > 0 && $request->has('audit_id');
 
         // location_id => company (the "site")
@@ -88,6 +89,7 @@ class ReportController extends Controller
             'type' => $type,
             'types' => self::TYPES,
             'company' => $company,
+            'withPhotos' => $withPhotos,
             'companyList' => $companyList,
             'ran' => $ran,
             'selectedAudit' => $selectedAudit,
