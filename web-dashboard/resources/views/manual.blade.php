@@ -227,8 +227,7 @@
                     if (d && d.duplicate) {
                         var msg = 'This asset was already recorded for this audit';
                         if (d.checked_by) msg += ' by ' + d.checked_by;
-                        var when = (d.checked_at || '').replace('T', ' ').slice(0, 19);
-                        if (when) msg += ' on ' + when;
+                        if (d.checked_at) msg += ' on ' + d.checked_at;
                         msg += '. Continue and overwrite the existing record?';
                         document.getElementById('dupMsg').textContent = msg;
                         modal.style.display = 'flex';

@@ -71,7 +71,9 @@
                     @php
                         $resultId = (int) ($item['audit_result_id'] ?? 0);
                         $found = (int) ($item['asset_found'] ?? 0) === 1;
-                        $checkedAt = \Illuminate\Support\Str::of((string) ($item['checked_at'] ?? ''))->replace('T', ' ')->limit(19, '');
+                        $checkedAt = ! empty($item['checked_at'])
+                            ? \Illuminate\Support\Carbon::parse($item['checked_at'])->timezone(config('app.timezone'))->format('Y-m-d H:i')
+                            : '';
                         $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
                         $user = ($item['actual_user'] ?? '') ?: ($item['assigned_user'] ?? '') ?: '—';
                     @endphp

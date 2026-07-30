@@ -77,10 +77,14 @@ class ManualController extends Controller
             fn ($i) => strcasecmp(trim((string) ($i['asset_tag'] ?? '')), $assetTag) === 0
         );
 
+        $checkedAt = ! empty($match['checked_at'])
+            ? \Illuminate\Support\Carbon::parse($match['checked_at'])->timezone(config('app.timezone'))->format('Y-m-d H:i')
+            : null;
+
         return response()->json([
             'duplicate' => $match !== null,
             'checked_by' => $match['checked_by'] ?? null,
-            'checked_at' => $match['checked_at'] ?? null,
+            'checked_at' => $checkedAt,
         ]);
     }
 
