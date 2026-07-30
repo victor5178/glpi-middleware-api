@@ -9,7 +9,7 @@
         $found = (int) ($item['asset_found'] ?? 0) === 1;
         $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
         $checkedAt = ! empty($item['checked_at'])
-            ? \Illuminate\Support\Carbon::parse($item['checked_at'])->timezone(config('app.timezone'))->format('Y-m-d H:i')
+            ? \Illuminate\Support\Carbon::parse($item['checked_at'], 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
             : '';
 
         $yesNo = function ($v) {

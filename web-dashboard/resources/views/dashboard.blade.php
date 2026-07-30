@@ -81,7 +81,7 @@
                                 $resultId = (int) ($item['audit_result_id'] ?? 0);
                                 $found = (int) ($item['asset_found'] ?? 0) === 1;
                                 $checkedAt = ! empty($item['checked_at'])
-                                    ? \Illuminate\Support\Carbon::parse($item['checked_at'])->timezone(config('app.timezone'))->format('Y-m-d H:i')
+                                    ? \Illuminate\Support\Carbon::parse($item['checked_at'], 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
                                     : '';
                                 $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
                                 $cardUser = ($item['actual_user'] ?? '') ?: ($item['assigned_user'] ?? '') ?: '—';

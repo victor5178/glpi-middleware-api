@@ -78,7 +78,7 @@ class ManualController extends Controller
         );
 
         $checkedAt = ! empty($match['checked_at'])
-            ? \Illuminate\Support\Carbon::parse($match['checked_at'])->timezone(config('app.timezone'))->format('Y-m-d H:i')
+            ? \Illuminate\Support\Carbon::parse($match['checked_at'], 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
             : null;
 
         return response()->json([
