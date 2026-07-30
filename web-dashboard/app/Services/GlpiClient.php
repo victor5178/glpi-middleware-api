@@ -159,7 +159,7 @@ class GlpiClient
      *
      * @return array<int, array<string, mixed>>
      */
-    public function listAssets(?string $username, ?string $password, string $filter = ''): array
+    public function listAssets(?string $username, ?string $password, string $filter = '', bool $activeOnly = false): array
     {
         if ($username !== null && $username !== '' && $password !== null && $password !== '') {
             $session = $this->attemptLogin($username, $password);
@@ -178,6 +178,14 @@ class GlpiClient
         try {
             foreach ($this->types as $type) {
                 foreach ($this->listType($type, $session) as $it) {
+                    // With expand_dropdowns, states_id is the status NAME (e.g. "Active").
+                    $status = is_string($it['states_id'] ?? null) ? trim($it['states_id']) : null;
+
+                    // Skip anything that isn't Active when requested.
+                    if ($activeOnly && ! $this->isActiveStatus($status)) {
+                        continue;
+                    }
+
                     $entry = [
                         'type' => $type,
                         'id' => $it['id'] ?? null,
@@ -186,6 +194,7 @@ class GlpiClient
                         'otherserial' => $it['otherserial'] ?? null,
                         'contact' => $it['contact'] ?? null,
                         'location' => is_string($it['locations_id'] ?? null) ? $it['locations_id'] : null,
+                        'status' => $status,
                     ];
                     if ($needle !== '') {
                         $hay = mb_strtolower(implode(' ', array_filter([
@@ -203,6 +212,24 @@ class GlpiClient
         }
 
         return $results;
+    }
+
+    /**
+     * Whether a GLPI status name counts as "active". Configurable via
+     * GLPI_ACTIVE_STATUSES (comma-separated); defaults to common active labels.
+     */
+    protected function isActiveStatus(?string $status): bool
+    {
+        if ($status === null || $status === '') {
+            return false;
+        }
+        $active = array_filter(array_map('trim', explode(',', (string) config('services.glpi.active_statuses', 'Active,In use,In-use,Inuse'))));
+        foreach ($active as $a) {
+            if (strcasecmp($status, $a) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** @return array<int, array<string, mixed>> */

@@ -43,7 +43,8 @@ class AssetReviewController extends Controller
                     ->with('error', 'Please sign in again to review assets (your session predates a security update).');
             }
 
-            $glpiAssets = $glpi->listAssets($username, $password, $filter);
+            // Only compare Active assets — decommissioned/spare/disposed are excluded.
+            $glpiAssets = $glpi->listAssets($username, $password, $filter, true);
             $glpiError = $glpi->lastError;
             $glpiCount = count($glpiAssets);
 

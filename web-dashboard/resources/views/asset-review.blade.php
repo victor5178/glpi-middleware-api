@@ -9,8 +9,9 @@
     </div>
 
     <p style="color:var(--muted);margin:0 0 16px;">
-        Compares GLPI inventory against what has been checked in an audit — so you
-        can see which assets are done and which still need auditing. Use the filter
+        Compares <strong>Active</strong> GLPI assets against what has been checked in
+        an audit — so you can see which are done and which still need auditing
+        (decommissioned / spare / disposed assets are excluded). Use the filter
         (e.g. a site name or tag prefix) to scope the GLPI list.
     </p>
 
