@@ -193,6 +193,10 @@ class ManualController extends Controller
      */
     protected function normalizeCategory(string $type): string
     {
+        // GLPI network gear isn't a first-class asset category — bucket it as Peripheral.
+        if (strcasecmp($type, 'NetworkEquipment') === 0) {
+            return 'Peripheral';
+        }
         $allowed = ['Desktop', 'Laptop', 'Monitor', 'Printer', 'UPS', 'Computer', 'Peripheral'];
         foreach ($allowed as $c) {
             if (strcasecmp($type, $c) === 0) {

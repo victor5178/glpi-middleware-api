@@ -18,7 +18,7 @@ class GlpiClient
     protected int $timeout;
 
     /** GLPI item types to search. */
-    protected array $types = ['Computer', 'Monitor', 'Peripheral', 'Printer'];
+    protected array $types = ['Computer', 'Monitor', 'Peripheral', 'Printer', 'NetworkEquipment'];
 
     public ?string $lastError = null;
 
