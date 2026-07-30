@@ -139,6 +139,9 @@ class ManualController extends Controller
 
         $payload = [
             'audit_id' => (int) $validated['audit_id'],
+            // Unambiguous: we already resolved the internal assets.id above, so the
+            // middleware must not re-guess it from a (non-unique) GLPI id.
+            'asset_internal_id' => $assetId,
             'asset_id' => $assetId,
             'asset_found' => $flag('asset_found'),
             'actual_user' => $validated['actual_user'] ?? null,
