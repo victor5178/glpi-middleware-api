@@ -234,9 +234,9 @@ a:hover { text-decoration: underline; }
 .thumb-sm:hover { transform: scale(1.15); }
 
 /* ---------- Edit: photo management ---------- */
-.edit-photos { display: flex; flex-wrap: wrap; gap: 12px; }
-.edit-photo { display: flex; flex-direction: column; gap: 6px; width: 132px; }
-.edit-photo .zoom-wrap { width: 132px; height: 132px; border: 1px solid var(--line); background: #f3f5f8; }
+.edit-photos { display: flex; flex-wrap: wrap; gap: 10px; }
+.edit-photo { display: flex; flex-direction: column; gap: 5px; width: 92px; }
+.edit-photo .zoom-wrap { width: 92px; height: 92px; border: 1px solid var(--line); background: #f3f5f8; }
 .edit-photo-remove { display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); cursor: pointer; }
 .edit-photo-remove input { cursor: pointer; }
 
