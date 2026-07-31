@@ -231,6 +231,11 @@ a:hover { text-decoration: underline; }
 .pill-muted { background: #eef1f5; color: var(--muted); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
+/* Category icon on scanned cards (colour also conveys found/missing) */
+.cat-icon { display: inline-flex; flex: none; color: var(--muted); }
+.cat-icon.cat-found { color: var(--success); }
+.cat-icon.cat-missing { color: var(--danger); }
+
 /* ---------- Detail ---------- */
 .detail-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 22px; align-items: start; }
 .photo-frame { background: #0e1116; border-radius: var(--radius); overflow: hidden; display: grid; place-items: center; min-height: 280px; }

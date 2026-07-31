@@ -4,6 +4,30 @@
 
 @section('content')
 
+@php
+    // SVG path for an asset category icon.
+    $categoryIcon = function ($cat) {
+        $c = strtolower(trim((string) $cat));
+        return match (true) {
+            str_contains($c, 'laptop') => 'M4 5h16v10H4z M2 19h20',
+            str_contains($c, 'printer') => 'M6 9V3h12v6 M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2 M8 14h8v6H8z',
+            str_contains($c, 'monitor') => 'M3 4h18v12H3z M8 20h8 M12 16v4',
+            str_contains($c, 'ups') => 'M6 7h12v10H6z M9 4h6 M10 12h4',
+            str_contains($c, 'peripheral') || str_contains($c, 'network') => 'M12 2a5 5 0 0 0-5 5v10a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z M12 6v4',
+            default => 'M3 4h18v12H3z M8 20h8 M12 16v4', // computer / desktop
+        };
+    };
+    // Split "user@HOSTNAME": device name = after @, clean user = before @.
+    $splitAssigned = function ($item) {
+        $assigned = (string) ($item['assigned_user'] ?? '');
+        $host = str_contains($assigned, '@') ? trim(substr($assigned, strpos($assigned, '@') + 1)) : null;
+        $raw = ((string) ($item['actual_user'] ?? '')) ?: $assigned;
+        $user = str_contains($raw, '@') ? trim(substr($raw, 0, strpos($raw, '@'))) : $raw;
+        if ($user === '' || $user === '-') $user = '—';
+        return [$host, $user];
+    };
+@endphp
+
     @if ($error)
         <div class="alert alert-warn"><strong>Heads up:</strong> {{ $error }}</div>
     @endif
@@ -84,7 +108,9 @@
                                     ? \Illuminate\Support\Carbon::parse($item['checked_at'], 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
                                     : '';
                                 $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
-                                $cardUser = ($item['actual_user'] ?? '') ?: ($item['assigned_user'] ?? '') ?: '—';
+                                [$hostName, $cardUser] = $splitAssigned($item);
+                                $deviceName = $hostName ?: ($item['asset_tag'] ?? ('Asset #'.($item['asset_id'] ?? '?')));
+                                $category = $item['category'] ?? '';
                             @endphp
                             <a class="asset" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
                                 <div class="thumb-wrap">
@@ -102,14 +128,17 @@
                                 </div>
                                 <div class="body">
                                     <div class="row1">
-                                        <span class="name">{{ $item['asset_tag'] ?? 'Asset #'.($item['asset_id'] ?? '?') }}</span>
-                                        <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
+                                        <span class="name">{{ $deviceName }}</span>
+                                        <span class="cat-icon {{ $found ? 'cat-found' : 'cat-missing' }}" title="{{ $category ?: 'Asset' }}{{ $found ? ' · Found' : ' · Missing' }}">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $categoryIcon($category) }}"/></svg>
+                                        </span>
                                     </div>
                                     <span class="sub">{{ $item['model'] ?? 'Unknown model' }}</span>
                                     <span class="sub user">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                         {{ $cardUser }}
                                     </span>
+                                    @if ($hostName)<span class="sub">Tag: {{ $item['asset_tag'] ?? '—' }}</span>@endif
                                     <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
                                     <span class="meta">{{ $item['checked_by'] ?: 'Unknown' }} · {{ $checkedAt }}</span>
                                 </div>
