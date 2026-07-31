@@ -4,6 +4,7 @@ use App\Http\Controllers\AssetReviewController;
 use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiscrepancyController;
 use App\Http\Controllers\ManualController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ReportController;
@@ -49,6 +50,8 @@ Route::middleware('auth.glpi')->group(function () {
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
 
     Route::get('/report', [ReportController::class, 'index'])->name('report');
+
+    Route::get('/discrepancy', [DiscrepancyController::class, 'index'])->name('discrepancy');
 
     // Same-origin image proxy (avoids http/https mixed-content blocking).
     Route::get('/media/{path}', [MediaController::class, 'upload'])

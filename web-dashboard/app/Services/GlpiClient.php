@@ -193,6 +193,11 @@ class GlpiClient
                         continue;
                     }
 
+                    // Registered user: prefer the assigned user (users_id, a name
+                    // via expand_dropdowns), fall back to the free-text contact.
+                    $regUser = is_string($it['users_id'] ?? null) ? $it['users_id']
+                        : (is_string($it['contact'] ?? null) ? $it['contact'] : null);
+
                     $entry = [
                         'type' => $type,
                         'id' => $it['id'] ?? null,
@@ -200,6 +205,7 @@ class GlpiClient
                         'serial' => $it['serial'] ?? null,
                         'otherserial' => $it['otherserial'] ?? null,
                         'contact' => $it['contact'] ?? null,
+                        'user' => $regUser,
                         'location' => is_string($it['locations_id'] ?? null) ? $it['locations_id'] : null,
                         'status' => $status,
                     ];
