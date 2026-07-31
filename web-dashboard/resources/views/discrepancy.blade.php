@@ -62,6 +62,29 @@
             <div class="alert alert-warn" style="margin-top:16px;">{{ $glpiError }}</div>
         @endif
 
+        {{-- Names to help build the config/sites.php mapping --}}
+        @if (! empty($seen['glpi']) || ! empty($seen['scanned']))
+            <details style="margin-top:16px;">
+                <summary style="cursor:pointer;color:var(--brand);font-weight:600;">Detected site names (for precise location mapping)</summary>
+                <div class="card" style="margin-top:8px;"><div class="card-body">
+                    <p style="color:var(--muted);font-size:.84rem;margin:0 0 10px;">
+                        Map matching names to a shared key in <code>config/sites.php</code> so location
+                        mismatches are precise. Names not mapped use a tolerant compare.
+                    </p>
+                    <div class="form-grid">
+                        <div>
+                            <div class="section-label" style="margin-top:0;">GLPI locations</div>
+                            <ul style="margin:6px 0 0 16px;">@forelse ($seen['glpi'] as $g)<li>{{ $g }}</li>@empty<li class="muted">—</li>@endforelse</ul>
+                        </div>
+                        <div>
+                            <div class="section-label" style="margin-top:0;">Scanned sites</div>
+                            <ul style="margin:6px 0 0 16px;">@forelse ($seen['scanned'] as $s)<li>{{ $s }}</li>@empty<li class="muted">—</li>@endforelse</ul>
+                        </div>
+                    </div>
+                </div></div>
+            </details>
+        @endif
+
         @php $q = ['audit_id' => $auditId, 'filter' => $filter, 'categories' => $categories]; @endphp
 
         <div style="display:flex;align-items:center;gap:10px;margin:18px 0 10px;flex-wrap:wrap;">

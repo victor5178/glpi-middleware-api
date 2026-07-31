@@ -42,8 +42,9 @@ class DiscrepancyController extends Controller
 
         $rows = [];
         $glpiError = null;
+        $seen = ['glpi' => [], 'scanned' => []];
         if ($ran) {
-            [$rows, $glpiError, $redirect] = $this->buildRows($request, $mw, $glpi, $auditId, $filter, $categories);
+            [$rows, $glpiError, $redirect, $seen] = $this->buildRows($request, $mw, $glpi, $auditId, $filter, $categories);
             if ($redirect) {
                 return $redirect;
             }
@@ -66,13 +67,14 @@ class DiscrepancyController extends Controller
             'rows' => $rows,
             'headers' => self::HEADERS,
             'markdown' => $ran ? $this->toMarkdown($rows) : '',
+            'seen' => $seen,
             'glpiError' => $glpiError,
             'error' => $mw->lastError,
         ]);
     }
 
     /**
-     * @return array{0: array<int,array<string,string>>, 1: ?string, 2: mixed}
+     * @return array{0: array<int,array<string,string>>, 1: ?string, 2: mixed, 3: array{glpi:array,scanned:array}}
      */
     private function buildRows(Request $request, MiddlewareClient $mw, GlpiClient $glpi, int $auditId, string $filter, array $categories): array
     {
@@ -90,7 +92,8 @@ class DiscrepancyController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             return [[], null, redirect()->route('login')
-                ->with('error', 'Please sign in again to run this review (your session predates a security update).')];
+                ->with('error', 'Please sign in again to run this review (your session predates a security update).'),
+                ['glpi' => [], 'scanned' => []]];
         }
 
         $types = [];
@@ -111,17 +114,21 @@ class DiscrepancyController extends Controller
         }
         $auditLocId = collect($mw->audits())->firstWhere('id', $auditId)['location_id'] ?? null;
 
+        $scannedSeen = [];
         $bySerial = [];
         $byTag = [];
         foreach ($mw->scannedItems($auditId) as $s) {
             $locId = $s['actual_location_id'] ?? $auditLocId;
             $s['_site'] = ($locId !== null && ! empty($companyByLoc[(int) $locId])) ? $companyByLoc[(int) $locId] : '';
+            if ($s['_site'] !== '') $scannedSeen[$s['_site']] = true;
             if (! empty($s['serial_number'])) $bySerial[$this->norm($s['serial_number'])] = $s;
             if (! empty($s['asset_tag'])) $byTag[$this->norm($s['asset_tag'])] = $s;
         }
 
+        $glpiSeen = [];
         $rows = [];
         foreach ($glpiAssets as $a) {
+            if (is_string($a['location'] ?? null) && $a['location'] !== '') $glpiSeen[$a['location']] = true;
             $serialKey = $this->norm((string) ($a['serial'] ?? ''));
             $tagKey = $this->norm((string) ($a['otherserial'] ?? ''));
             $sub = ($serialKey !== '' && isset($bySerial[$serialKey])) ? $bySerial[$serialKey]
@@ -168,7 +175,11 @@ class DiscrepancyController extends Controller
 
         usort($rows, fn ($x, $y) => [$x['Discrepancy Type'], $x['Asset Tag']] <=> [$y['Discrepancy Type'], $y['Asset Tag']]);
 
-        return [$rows, $glpiError, null];
+        ksort($glpiSeen);
+        ksort($scannedSeen);
+        $seen = ['glpi' => array_keys($glpiSeen), 'scanned' => array_keys($scannedSeen)];
+
+        return [$rows, $glpiError, null, $seen];
     }
 
     private function toMarkdown(array $rows): string
@@ -225,12 +236,38 @@ class DiscrepancyController extends Controller
         return $v === '-' ? '' : $v;
     }
 
-    /** Locations "match" if either name contains the other (tolerant of naming). */
+    /**
+     * Do a GLPI location and a scanned site refer to the same place? If BOTH are
+     * mapped in config/sites.php they must share a canonical key (precise);
+     * otherwise fall back to a tolerant text compare (either contains the other).
+     */
     private function locMatches(string $a, string $b): bool
     {
-        $a = mb_strtolower(trim($a));
-        $b = mb_strtolower(trim($b));
-        if ($a === $b) return true;
-        return $a !== '' && $b !== '' && (str_contains($a, $b) || str_contains($b, $a));
+        $ca = $this->canonicalSite($a);
+        $cb = $this->canonicalSite($b);
+        if ($ca !== null && $cb !== null) {
+            return $ca === $cb;
+        }
+
+        $al = mb_strtolower(trim($a));
+        $bl = mb_strtolower(trim($b));
+        if ($al === $bl) return true;
+        return $al !== '' && $bl !== '' && (str_contains($al, $bl) || str_contains($bl, $al));
+    }
+
+    /** Resolve a location/site name to its canonical key from config/sites.php. */
+    private function canonicalSite(string $name): ?string
+    {
+        static $map = null;
+        if ($map === null) {
+            $map = [];
+            foreach ((array) config('sites.aliases', []) as $canonical => $aliases) {
+                $map[mb_strtolower(trim($canonical))] = $canonical;
+                foreach ((array) $aliases as $alias) {
+                    $map[mb_strtolower(trim($alias))] = $canonical;
+                }
+            }
+        }
+        return $map[mb_strtolower(trim($name))] ?? null;
     }
 }
