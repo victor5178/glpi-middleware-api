@@ -151,6 +151,8 @@ class ManualController extends Controller
             'is_endpoint_latest' => $flag('is_endpoint_latest'),
             'is_monitor_working' => $flag('is_monitor_working'),
             'is_ups_working' => $flag('is_ups_working'),
+            'led_normal' => $flag('led_normal'),
+            'no_fault' => $flag('no_fault'),
             'additional_info' => $validated['additional_info'] ?? null,
             // Authoritative: always the logged-in user, not whatever was posted.
             'checked_by' => $request->session()->get('glpi_user') ?: $validated['checked_by'],

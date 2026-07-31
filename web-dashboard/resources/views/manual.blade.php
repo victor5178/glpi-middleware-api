@@ -147,17 +147,16 @@
 
         <div class="card" style="margin-top:16px;">
             <div class="card-body">
-                <div class="section-label" style="margin-top:0;">Checklist</div>
                 @php
-                    $checks = [
-                        'asset_found' => 'Asset physically found',
-                        'is_physical_good' => 'Physical condition good',
-                        'is_patch_latest' => 'OS patches up to date',
-                        'is_endpoint_latest' => 'Endpoint protection up to date',
-                        'is_monitor_working' => 'Monitor working',
-                        'is_ups_working' => 'UPS working',
-                    ];
+                    // Checklist items depend on the asset's category (from the GLPI
+                    // "Use this asset" step). Unknown category → the default list.
+                    $catKey = strtolower(trim((string) old('category', request('category'))));
+                    $cfg = config('checklist');
+                    $checks = $cfg['always'] + ($cfg['by_category'][$catKey] ?? $cfg['default']);
                 @endphp
+                <div class="section-label" style="margin-top:0;">
+                    Checklist @if($catKey !== '')<span class="pill pill-muted" style="margin-left:6px;">{{ ucfirst($catKey) }}</span>@endif
+                </div>
                 <div class="checks-grid">
                     @foreach ($checks as $name => $label)
                         <label class="check">

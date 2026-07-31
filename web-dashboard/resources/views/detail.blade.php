@@ -19,14 +19,14 @@
                 default => ['—', 'pill-muted'],
             };
         };
-        $checks = [
-            'Asset physically found' => $item['asset_found'] ?? null,
-            'Physical condition good' => $item['is_physical_good'] ?? null,
-            'OS patches up to date' => $item['is_patch_latest'] ?? null,
-            'Endpoint protection up to date' => $item['is_endpoint_latest'] ?? null,
-            'Monitor working' => $item['is_monitor_working'] ?? null,
-            'UPS working' => $item['is_ups_working'] ?? null,
-        ];
+        // Show the checklist relevant to this asset's category.
+        $catKey = strtolower(trim((string) ($item['category'] ?? '')));
+        $cfg = config('checklist');
+        $fields = $cfg['always'] + ($cfg['by_category'][$catKey] ?? $cfg['default']);
+        $checks = [];
+        foreach ($fields as $field => $label) {
+            $checks[$label] = $item[$field] ?? null;
+        }
     @endphp
 
     @if (session('success'))

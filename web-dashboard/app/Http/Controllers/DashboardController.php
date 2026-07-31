@@ -105,6 +105,8 @@ class DashboardController extends Controller
             'is_endpoint_latest' => $flag('is_endpoint_latest'),
             'is_monitor_working' => $flag('is_monitor_working'),
             'is_ups_working' => $flag('is_ups_working'),
+            'led_normal' => $flag('led_normal'),
+            'no_fault' => $flag('no_fault'),
         ];
 
         $result = $client->updateResult($resultId, $payload);
