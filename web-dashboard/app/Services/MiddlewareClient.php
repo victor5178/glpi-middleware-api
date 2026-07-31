@@ -147,8 +147,10 @@ class MiddlewareClient
             return [];
         }
 
+        // Return middleware-relative paths (e.g. "uploads/2026.../f.jpg"); the
+        // views turn these into the same-origin /media proxy URL.
         return array_values(array_filter(array_map(
-            fn ($img) => isset($img['url']) ? $this->baseUrl.$img['url'] : null,
+            fn ($img) => $img['path'] ?? null,
             $json['images']
         )));
     }
@@ -167,10 +169,8 @@ class MiddlewareClient
         }
 
         return array_values(array_filter(array_map(function ($img) {
-            if (! isset($img['url'])) {
-                return null;
-            }
-            return ['path' => (string) ($img['path'] ?? ''), 'url' => $this->baseUrl.$img['url']];
+            $p = (string) ($img['path'] ?? '');
+            return $p !== '' ? ['path' => $p] : null;
         }, $json['images'])));
     }
 

@@ -107,7 +107,7 @@
                         @foreach ($images as $img)
                             <label class="edit-photo">
                                 <span class="zoom-wrap">
-                                    <img src="{{ $img['url'] }}" alt="Audit photo" loading="lazy">
+                                    <img src="{{ url('media/'.ltrim($img['path'], '/')) }}" alt="Audit photo" loading="lazy">
                                 </span>
                                 <span class="edit-photo-remove">
                                     <input type="checkbox" name="remove_images[]" value="{{ $img['path'] }}">

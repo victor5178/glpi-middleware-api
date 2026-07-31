@@ -55,14 +55,14 @@
             <div class="card-body">
                 @if (! empty($images))
                     <div class="photo-frame">
-                        <img id="mainPhoto" src="{{ $images[0] }}"
+                        <img id="mainPhoto" src="{{ url('media/'.ltrim($images[0], '/')) }}"
                              alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}">
                     </div>
 
                     @if (count($images) > 1)
                         <div class="thumbs">
-                            @foreach ($images as $i => $url)
-                                <img class="thumb-sm {{ $i === 0 ? 'active' : '' }}" src="{{ $url }}"
+                            @foreach ($images as $i => $imgPath)
+                                <img class="thumb-sm {{ $i === 0 ? 'active' : '' }}" src="{{ url('media/'.ltrim($imgPath, '/')) }}"
                                      alt="Photo {{ $i + 1 }}"
                                      onclick="document.getElementById('mainPhoto').src=this.src;document.querySelectorAll('.thumb-sm').forEach(function(t){t.classList.remove('active');});this.classList.add('active');">
                             @endforeach

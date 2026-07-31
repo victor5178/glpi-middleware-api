@@ -89,7 +89,7 @@
                             <a class="asset" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
                                 <div class="thumb-wrap">
                                     @if ($hasPhoto)
-                                        <img loading="lazy" src="{{ $client->imageUrl($resultId) }}"
+                                        <img loading="lazy" src="{{ url('media/'.ltrim($item['img_dir'], '/')) }}"
                                              alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}"
                                              onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
                                         <div class="thumb-empty" style="display:none;">Photo unavailable</div>

@@ -67,10 +67,7 @@
             $fmt = fn ($t) => ! empty($t)
                 ? \Illuminate\Support\Carbon::parse($t, 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
                 : '—';
-            $thumb = function ($it) use ($client) {
-                $rid = (int) ($it['audit_result_id'] ?? 0);
-                return (! empty($it['img_dir']) && $rid > 0) ? $client->imageUrl($rid) : null;
-            };
+            $thumb = fn ($it) => ! empty($it['img_dir']) ? url('media/'.ltrim($it['img_dir'], '/')) : null;
         @endphp
 
         <div class="report">

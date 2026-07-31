@@ -5,6 +5,7 @@ use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,4 +49,8 @@ Route::middleware('auth.glpi')->group(function () {
     Route::get('/audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
 
     Route::get('/report', [ReportController::class, 'index'])->name('report');
+
+    // Same-origin image proxy (avoids http/https mixed-content blocking).
+    Route::get('/media/{path}', [MediaController::class, 'upload'])
+        ->where('path', 'uploads/.*')->name('media');
 });

@@ -46,10 +46,11 @@ class DashboardController extends Controller
         $item = $this->findResult($client, $auditId, $resultId);
         abort_if($item === null, 404, 'Scanned record not found.');
 
-        // All photos for this record (there may be more than one).
+        // All photos for this record (middleware-relative paths; there may be
+        // more than one). Fall back to the single img_dir if the list is empty.
         $images = $client->resultImages($resultId);
         if (empty($images) && ! empty($item['img_dir'])) {
-            $images = [$client->imageUrl($resultId)];
+            $images = [$item['img_dir']];
         }
 
         return view('detail', [
