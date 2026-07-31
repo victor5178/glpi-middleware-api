@@ -201,12 +201,12 @@ class GlpiClient
                     $entry = [
                         'type' => $type,
                         'id' => $it['id'] ?? null,
-                        'name' => $it['name'] ?? null,
-                        'serial' => $it['serial'] ?? null,
-                        'otherserial' => $it['otherserial'] ?? null,
-                        'contact' => $it['contact'] ?? null,
-                        'user' => $regUser,
-                        'location' => is_string($it['locations_id'] ?? null) ? $it['locations_id'] : null,
+                        'name' => $this->cleanText($it['name'] ?? null),
+                        'serial' => $this->cleanText($it['serial'] ?? null),
+                        'otherserial' => $this->cleanText($it['otherserial'] ?? null),
+                        'contact' => $this->cleanText($it['contact'] ?? null),
+                        'user' => $this->cleanText($regUser),
+                        'location' => $this->cleanLocation(is_string($it['locations_id'] ?? null) ? $it['locations_id'] : null),
                         'status' => $status,
                     ];
                     if ($needle !== '') {
@@ -225,6 +225,28 @@ class GlpiClient
         }
 
         return $results;
+    }
+
+    /** Decode HTML entities GLPI returns (e.g. "&#62;" → ">", "&amp;" → "&"). */
+    protected function cleanText(?string $v): ?string
+    {
+        if ($v === null) {
+            return null;
+        }
+        return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Clean a GLPI location: decode entities and turn the completename hierarchy
+     * separator ("A > B") into the comma form used by scanned sites ("A , B").
+     */
+    protected function cleanLocation(?string $v): ?string
+    {
+        $v = $this->cleanText($v);
+        if ($v === null || $v === '') {
+            return $v;
+        }
+        return trim(preg_replace('/\s*>\s*/', ' , ', $v));
     }
 
     /**
