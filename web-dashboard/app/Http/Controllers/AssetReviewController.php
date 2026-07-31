@@ -14,7 +14,8 @@ class AssetReviewController extends Controller
         'Computer' => ['Computer'],
         'Monitor' => ['Monitor'],
         'Network' => ['NetworkEquipment'],
-        'Peripheral' => ['Peripheral', 'Printer'],
+        'Peripheral' => ['Peripheral'],
+        'Printer' => ['Printer'],
     ];
 
     /**
