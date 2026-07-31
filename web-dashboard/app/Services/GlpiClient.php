@@ -159,8 +159,15 @@ class GlpiClient
      *
      * @return array<int, array<string, mixed>>
      */
-    public function listAssets(?string $username, ?string $password, string $filter = '', bool $activeOnly = false): array
+    /**
+     * @param array<int, string> $types GLPI item types to include (empty = all)
+     */
+    public function listAssets(?string $username, ?string $password, string $filter = '', bool $activeOnly = false, array $types = []): array
     {
+        $typesToScan = ! empty($types)
+            ? array_values(array_intersect($this->types, $types))
+            : $this->types;
+
         if ($username !== null && $username !== '' && $password !== null && $password !== '') {
             $session = $this->attemptLogin($username, $password);
         } elseif ($this->isConfigured()) {
@@ -176,7 +183,7 @@ class GlpiClient
         $needle = trim(mb_strtolower($filter));
         $results = [];
         try {
-            foreach ($this->types as $type) {
+            foreach ($typesToScan as $type) {
                 foreach ($this->listType($type, $session) as $it) {
                     // With expand_dropdowns, states_id is the status NAME (e.g. "Active").
                     $status = is_string($it['states_id'] ?? null) ? trim($it['states_id']) : null;

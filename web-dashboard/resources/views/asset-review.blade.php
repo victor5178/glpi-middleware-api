@@ -11,31 +11,70 @@
     <p style="color:var(--muted);margin:0 0 16px;">
         Compares <strong>Active</strong> GLPI assets against what has been checked in
         an audit — so you can see which are done and which still need auditing
-        (decommissioned / spare / disposed assets are excluded). Use the filter
-        (e.g. a site name or tag prefix) to scope the GLPI list.
+        (decommissioned / spare / disposed excluded). Scope by scanned site, GLPI
+        site and category. Tip: run once, then pick the GLPI site from the list and
+        compare again.
     </p>
 
     @if ($error)
         <div class="alert alert-muted">{{ $error }}</div>
     @endif
 
-    <form method="get" action="{{ route('asset-review') }}" class="filter" style="gap:12px;">
-        <div class="field">
-            <label for="audit_id">Audit</label>
-            <select class="select" id="audit_id" name="audit_id">
-                <option value="">Select an audit…</option>
-                @foreach ($audits as $a)
-                    <option value="{{ $a['id'] }}" @selected($auditId === (int) $a['id'])>
-                        #{{ $a['id'] }} · {{ $a['audit_name'] ?? 'Audit' }}
-                    </option>
-                @endforeach
-            </select>
+    <form method="get" action="{{ route('asset-review') }}" class="card">
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="form-field">
+                    <label>Audit <span class="req">*</span></label>
+                    <select class="select" name="audit_id" style="min-width:0;">
+                        <option value="">Select an audit…</option>
+                        @foreach ($audits as $a)
+                            <option value="{{ $a['id'] }}" @selected($auditId === (int) $a['id'])>
+                                #{{ $a['id'] }} · {{ $a['audit_name'] ?? 'Audit' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Scanned site (audit location)</label>
+                    <select class="select" name="scanned_site" style="min-width:0;">
+                        <option value="">All scanned sites</option>
+                        @foreach ($scannedSites as $s)
+                            <option value="{{ $s }}" @selected($scannedSite === $s)>{{ $s }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>GLPI site (location)</label>
+                    <select class="select" name="glpi_site" style="min-width:0;">
+                        <option value="">All GLPI sites</option>
+                        {{-- Populated from the last comparison; keeps the current pick available --}}
+                        @php $opts = collect($glpiSites); if ($glpiSite !== '' && ! $opts->contains($glpiSite)) $opts = $opts->push($glpiSite); @endphp
+                        @foreach ($opts as $s)
+                            <option value="{{ $s }}" @selected($glpiSite === $s)>{{ $s }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Keyword (optional)</label>
+                    <input class="input" name="filter" value="{{ $filter }}" placeholder="e.g. tag / serial / user" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="form-field" style="margin-top:12px;">
+                <label>Category</label>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;">
+                    @foreach ($categoryList as $c)
+                        <label class="check" style="display:flex;align-items:center;gap:6px;">
+                            <input type="checkbox" name="categories[]" value="{{ $c }}" @checked(in_array($c, $categories, true))>
+                            {{ $c }}
+                        </label>
+                    @endforeach
+                    <span style="color:var(--muted);font-size:.8rem;align-self:center;">(none = all categories)</span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="margin-top:14px;">Compare</button>
         </div>
-        <div class="field" style="flex:1;">
-            <label for="filter">GLPI filter (site / tag / user — optional)</label>
-            <input class="input" id="filter" name="filter" value="{{ $filter }}" placeholder="e.g. MASB-INANAM" autocomplete="off">
-        </div>
-        <button type="submit" class="btn btn-primary">Compare</button>
     </form>
 
     @if ($ran)
