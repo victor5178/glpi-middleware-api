@@ -9,12 +9,13 @@
     $categoryIcon = function ($cat) {
         $c = strtolower(trim((string) $cat));
         return match (true) {
-            str_contains($c, 'laptop') => 'M4 5h16v10H4z M2 19h20',
-            str_contains($c, 'printer') => 'M6 9V3h12v6 M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2 M8 14h8v6H8z',
-            str_contains($c, 'monitor') => 'M3 4h18v12H3z M8 20h8 M12 16v4',
-            str_contains($c, 'ups') => 'M6 7h12v10H6z M9 4h6 M10 12h4',
-            str_contains($c, 'peripheral') || str_contains($c, 'network') => 'M12 2a5 5 0 0 0-5 5v10a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z M12 6v4',
-            default => 'M3 4h18v12H3z M8 20h8 M12 16v4', // computer / desktop
+            str_contains($c, 'laptop') => 'M4 5h16v10H4z M2 19h20',                                   // laptop
+            str_contains($c, 'printer') => 'M6 9V3h12v6 M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2 M8 14h8v6H8z', // printer
+            str_contains($c, 'monitor') => 'M3 4h18v12H3z M8 20h8 M12 16v4',                          // monitor (screen + stand)
+            str_contains($c, 'ups') => 'M6 7h12v10H6z M9 4h6 M10 12h4',                                // ups (battery)
+            str_contains($c, 'peripheral') || str_contains($c, 'network') => 'M12 2a5 5 0 0 0-5 5v10a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z M12 6v4', // mouse
+            str_contains($c, 'computer') || str_contains($c, 'desktop') => 'M7 3h10v18H7z M10 7h4 M10 10h4 M11 15h2', // desktop tower
+            default => 'M4 4h16v16H4z',                                                                // generic box
         };
     };
     // Split "user@HOSTNAME": device name = after @, clean user = before @.
