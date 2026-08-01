@@ -151,8 +151,8 @@
                     // Checklist items depend on the asset's category (from the GLPI
                     // "Use this asset" step). Unknown category → the default list.
                     $catKey = strtolower(trim((string) old('category', request('category'))));
-                    $cfg = config('checklist');
-                    $checks = $cfg['by_category'][$catKey] ?? $cfg['default'];
+                    $cfg = config('checklist') ?? [];
+                    $checks = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical Condition'];
                 @endphp
                 <label class="check" style="margin-bottom:10px;">
                     <input type="checkbox" name="asset_found" value="1" @checked(old('asset_found', '1') == '1')>
