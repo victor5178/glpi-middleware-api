@@ -69,8 +69,12 @@
                 @php
                     $catKey = strtolower(trim((string) ($item['category'] ?? '')));
                     $cfg = config('checklist');
-                    $checks = $cfg['always'] + ($cfg['by_category'][$catKey] ?? $cfg['default']);
+                    $checks = $cfg['by_category'][$catKey] ?? $cfg['default'];
                 @endphp
+                <label class="check" style="margin-bottom:10px;">
+                    <input type="checkbox" name="asset_found" value="1" @checked((int) old('asset_found', $item['asset_found'] ?? 0) === 1)>
+                    Asset found on site
+                </label>
                 <div class="section-label" style="margin-top:0;">
                     Checklist @if($catKey !== '')<span class="pill pill-muted" style="margin-left:6px;">{{ ucfirst($catKey) }}</span>@endif
                 </div>
@@ -86,7 +90,7 @@
 
                 <div class="form-field" style="margin-top:14px;">
                     <label>Notes</label>
-                    <textarea class="textarea" name="additional_info">{{ old('additional_info', $item['additional_info'] ?? '') }}</textarea>
+                    <textarea class="textarea" name="additional_info" rows="4" placeholder="Multi-line notes are supported…">{{ old('additional_info', $item['additional_info'] ?? '') }}</textarea>
                 </div>
             </div>
         </div>

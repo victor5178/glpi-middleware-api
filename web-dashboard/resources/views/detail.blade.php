@@ -19,10 +19,10 @@
                 default => ['—', 'pill-muted'],
             };
         };
-        // Show the checklist relevant to this asset's category.
+        // Show the checklist relevant to this asset's category, plus the found status.
         $catKey = strtolower(trim((string) ($item['category'] ?? '')));
         $cfg = config('checklist');
-        $fields = $cfg['always'] + ($cfg['by_category'][$catKey] ?? $cfg['default']);
+        $fields = ['asset_found' => 'Asset found on site'] + ($cfg['by_category'][$catKey] ?? $cfg['default']);
         $checks = [];
         foreach ($fields as $field => $label) {
             $checks[$label] = $item[$field] ?? null;
@@ -103,7 +103,7 @@
                     </ul>
 
                     <div class="section-label">Notes</div>
-                    <p style="margin:0;">{{ $item['additional_info'] ?: '—' }}</p>
+                    <p style="margin:0;white-space:pre-wrap;">{{ $item['additional_info'] ?: '—' }}</p>
                 </div>
             </div>
         </div>

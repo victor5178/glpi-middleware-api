@@ -138,7 +138,7 @@
                                 <td>{{ $yesNo($it['is_endpoint_latest'] ?? null) }}</td>
                                 <td>{{ $yesNo($it['is_monitor_working'] ?? null) }}</td>
                                 <td>{{ $yesNo($it['is_ups_working'] ?? null) }}</td>
-                                <td>{{ $it['additional_info'] ?: '' }}</td>
+                                <td style="white-space:pre-wrap;">{{ $it['additional_info'] ?: '' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
