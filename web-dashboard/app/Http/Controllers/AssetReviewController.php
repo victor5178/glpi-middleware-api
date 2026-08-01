@@ -103,7 +103,6 @@ class AssetReviewController extends Controller
             // Index the audit's submitted items (optionally scoped to a scanned site).
             $auditLocId = collect($audits)->firstWhere('id', $auditId)['location_id'] ?? null;
             $bySerial = [];
-            $byTag = [];
             foreach ($mw->scannedItems($auditId) as $s) {
                 $locId = $s['actual_location_id'] ?? $auditLocId;
                 $comp = ($locId !== null && ! empty($companyByLoc[(int) $locId]))
@@ -114,16 +113,12 @@ class AssetReviewController extends Controller
                 if (! empty($s['serial_number'])) {
                     $bySerial[$this->norm($s['serial_number'])] = $s;
                 }
-                if (! empty($s['asset_tag'])) {
-                    $byTag[$this->norm($s['asset_tag'])] = $s;
-                }
             }
 
             foreach ($glpiAssets as $a) {
+                // Compare by serial number only.
                 $serialKey = $this->norm((string) ($a['serial'] ?? ''));
-                $tagKey = $this->norm((string) ($a['otherserial'] ?? ''));
-                $match = ($serialKey !== '' && isset($bySerial[$serialKey])) ? $bySerial[$serialKey]
-                    : (($tagKey !== '' && isset($byTag[$tagKey])) ? $byTag[$tagKey] : null);
+                $match = ($serialKey !== '' && isset($bySerial[$serialKey])) ? $bySerial[$serialKey] : null;
 
                 if ($match !== null) {
                     $checked[] = ['glpi' => $a, 'sub' => $match];
