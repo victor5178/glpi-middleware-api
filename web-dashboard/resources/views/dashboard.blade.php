@@ -18,6 +18,17 @@
             default => 'M4 4h16v16H4z',                                                                // generic box
         };
     };
+    // Group a category into one of the badge buckets (key, label, icon path).
+    $catBadge = function ($cat) {
+        $c = strtolower(trim((string) $cat));
+        return match (true) {
+            str_contains($c, 'monitor') => ['monitor', 'Monitor', 'M3 4h18v12H3z M8 20h8 M12 16v4'],
+            str_contains($c, 'printer') => ['printer', 'Printer', 'M6 9V3h12v6 M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2 M8 14h8v6H8z'],
+            str_contains($c, 'network') || str_contains($c, 'peripheral') || str_contains($c, 'server')
+                => ['network', 'Network / Peripheral', 'M4 4h16v6H4z M4 14h16v6H4z M8 7h.01 M8 17h.01'],
+            default => ['pc', 'Computer / Laptop', 'M4 5h16v10H4z M2 19h20'], // computer / laptop / notebook
+        };
+    };
     // Split "user@HOSTNAME": device name = after @, clean user = before @.
     $splitAssigned = function ($item) {
         $assigned = (string) ($item['assigned_user'] ?? '');
@@ -80,6 +91,13 @@
         @endforeach
     </div>
 
+    @if (! empty($groups))
+        <div class="scan-search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="search" id="scanSearch" placeholder="Search user, asset name, tag, serial, category, location…" autocomplete="off">
+        </div>
+    @endif
+
     <div class="section-label">Scanned items</div>
 
     @if (empty($groups))
@@ -87,6 +105,7 @@
     @else
         @foreach ($groups as $site => $usersInSite)
             @php $siteCount = collect($usersInSite)->sum(fn ($u) => count($u)); @endphp
+            <div class="site-block">
             <div class="group-head">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V7l6-4 6 4v14M10 9h.01M14 9h.01M10 13h.01M14 13h.01M10 17h.01M14 17h.01"/></svg>
                 <span class="group-name">{{ $site }}</span>
@@ -94,10 +113,26 @@
             </div>
 
             @foreach ($usersInSite as $user => $userItems)
-                <details class="user-group">
+                @php
+                    $catCounts = [];
+                    foreach ($userItems as $ci) {
+                        [$gk, $glabel, $gicon] = $catBadge($ci['category'] ?? '');
+                        if (! isset($catCounts[$gk])) $catCounts[$gk] = ['label' => $glabel, 'icon' => $gicon, 'count' => 0];
+                        $catCounts[$gk]['count']++;
+                    }
+                @endphp
+                <details class="user-group" data-uname="{{ strtolower($user) }}">
                     <summary>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         <span class="user-name">{{ $user }}</span>
+                        <span class="cat-badges">
+                            @foreach ($catCounts as $b)
+                                <span class="cat-badge" title="{{ $b['label'] }}{{ $b['count'] > 1 ? ' ×'.$b['count'] : '' }}">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $b['icon'] }}"/></svg>
+                                    @if ($b['count'] > 1)<span class="cat-badge-x">{{ $b['count'] }}</span>@endif
+                                </span>
+                            @endforeach
+                        </span>
                         <span class="group-count">{{ count($userItems) }}</span>
                     </summary>
                     <div class="grid">
@@ -113,7 +148,13 @@
                                 $deviceName = $hostName ?: ($item['asset_tag'] ?? ('Asset #'.($item['asset_id'] ?? '?')));
                                 $category = $item['category'] ?? '';
                             @endphp
-                            <a class="asset" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
+                            @php
+                                $searchHay = strtolower(trim(implode(' ', array_filter([
+                                    $deviceName, $item['asset_tag'] ?? '', $item['serial_number'] ?? '',
+                                    $item['model'] ?? '', $category, $site, $cardUser,
+                                ]))));
+                            @endphp
+                            <a class="asset" data-asset="{{ $searchHay }}" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
                                 <div class="thumb-wrap">
                                     @if ($hasPhoto)
                                         <img loading="lazy" src="{{ url('media/'.ltrim($item['img_dir'], '/')) }}"
@@ -148,7 +189,61 @@
                     </div>
                 </details>
             @endforeach
+            </div>{{-- /.site-block --}}
         @endforeach
+
+        <div id="scanEmpty" class="alert alert-muted" style="display:none;">No items match your search.</div>
     @endif
+
+    <script>
+    (function () {
+        var input = document.getElementById('scanSearch');
+        if (!input) return;
+        var empty = document.getElementById('scanEmpty');
+        var sites = Array.prototype.slice.call(document.querySelectorAll('.site-block'));
+
+        function apply() {
+            var q = input.value.trim().toLowerCase();
+            var anyVisible = false;
+
+            sites.forEach(function (site) {
+                var siteVisible = false;
+                var groups = site.querySelectorAll('.user-group');
+                Array.prototype.forEach.call(groups, function (g) {
+                    var uname = g.getAttribute('data-uname') || '';
+                    var unameMatch = q !== '' && uname.indexOf(q) !== -1;
+                    var cardHit = false;
+
+                    Array.prototype.forEach.call(g.querySelectorAll('.asset'), function (c) {
+                        var hay = c.getAttribute('data-asset') || '';
+                        var isHit = q !== '' && !unameMatch && hay.indexOf(q) !== -1;
+                        // Show all cards when empty query or the user name matched.
+                        c.style.display = (q === '' || unameMatch || hay.indexOf(q) !== -1) ? '' : 'none';
+                        c.classList.toggle('search-hit', isHit);
+                        if (isHit) cardHit = true;
+                    });
+
+                    var show = q === '' || unameMatch || cardHit;
+                    g.style.display = show ? '' : 'none';
+                    g.open = (q !== '' && cardHit);   // auto-expand only on an asset match
+                    if (show) siteVisible = true;
+                });
+
+                site.style.display = siteVisible ? '' : 'none';
+                if (siteVisible) anyVisible = true;
+            });
+
+            if (empty) empty.style.display = (q !== '' && !anyVisible) ? '' : 'none';
+
+            if (q !== '') {
+                var first = document.querySelector('.asset.search-hit');
+                if (first) first.scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        var t;
+        input.addEventListener('input', function () { clearTimeout(t); t = setTimeout(apply, 120); });
+    })();
+    </script>
 
 @endsection
