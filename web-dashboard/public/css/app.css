@@ -328,7 +328,12 @@ a:hover { text-decoration: underline; }
 .report-table tbody tr:nth-child(even) { background: #fafbfc; }
 .report-group { margin: 20px 0 8px; font-size: 1rem; }
 .report-group span { color: var(--muted); font-weight: 500; font-size: .84rem; }
-.report-thumb { width: 46px; height: 46px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); display: inline-block; }
+.report-photo-cell { width: 1%; white-space: nowrap; }
+.report-photo-grid { display: flex; flex-wrap: wrap; gap: 6px; max-width: 200px; }
+.report-thumb {
+    width: 88px; height: 88px; object-fit: cover; border-radius: 8px;
+    border: 1px solid var(--line); background: #f3f5f8; display: block; padding: 0;
+}
 .report-foot { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; color: var(--muted); font-size: .78rem; text-align: center; }
 
 /* ---------- Print ---------- */
@@ -340,7 +345,8 @@ a:hover { text-decoration: underline; }
     .report-table thead th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .report-table { font-size: 11px; }
     .report-table tr, .report-group { break-inside: avoid; }
-    .report-thumb { width: 40px; height: 40px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-thumb { width: 68px; height: 68px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-photo-grid { max-width: 150px; gap: 4px; }
     a { color: #000; text-decoration: none; }
 }
 
