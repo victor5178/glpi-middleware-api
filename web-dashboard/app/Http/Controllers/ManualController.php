@@ -155,10 +155,18 @@ class ManualController extends Controller
             'model' => 'nullable|string|max:100',
             'assigned_user' => 'nullable|string|max:100',
             'fa_tagging' => 'nullable|string|max:100',
+            'date_buy' => 'nullable|string|max:30',
             'photos.*' => 'nullable|image|max:51200', // 50 MB, matches middleware
         ]);
 
         $assetTag = trim($validated['asset_tag']);
+
+        // Normalise the GLPI purchase date: drop empty / '0000-00-00' placeholders
+        // so the middleware's COALESCE keeps any existing value.
+        $dateBuy = trim((string) ($validated['date_buy'] ?? ''));
+        if ($dateBuy === '' || str_starts_with($dateBuy, '0000-00-00')) {
+            $dateBuy = null;
+        }
 
         // Resolve the asset by its tag to get an internal id.
         $asset = $client->getAsset($assetTag);
@@ -177,6 +185,15 @@ class ManualController extends Controller
                 // assets.location_id is NOT NULL — seed a new asset with the
                 // location being audited (COALESCE keeps it on later updates).
                 'location_id' => (int) $validated['actual_location_id'],
+                'date_buy' => $dateBuy,
+            ]);
+        } elseif ($assetId !== null && $dateBuy !== null) {
+            // Asset already in inventory: still push the GLPI purchase date so the
+            // dashboard aging bar has a value (non-destructive COALESCE upsert).
+            $client->upsertAsset([
+                'asset_tag' => $assetTag,
+                'category' => $this->normalizeCategory($validated['category'] ?? '') ?: null,
+                'date_buy' => $dateBuy,
             ]);
         }
 

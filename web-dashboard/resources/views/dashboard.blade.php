@@ -38,6 +38,19 @@
         if ($user === '' || $user === '-') $user = '—';
         return [$host, $user];
     };
+    // Asset-aging bar from the GLPI purchase/commission date (assets.date_buy).
+    // Returns null when no usable date is present so the bar is simply omitted.
+    $aging = function ($buy) {
+        $src = $buy ?: null;
+        if (empty($src) || str_starts_with((string) $src, '0000-00-00')) return null;
+        try { $d = \Illuminate\Support\Carbon::parse($src); } catch (\Throwable $e) { return null; }
+        if ($d->year < 1990 || $d->isFuture()) return null;
+        $years = round($d->floatDiffInYears(now()), 1);
+        $life = (float) config('services.glpi.asset_life_years', 5);
+        $pct = max(4, min(100, ($years / max(0.1, $life)) * 100));
+        $color = $pct >= 100 ? 'red' : ($pct >= 70 ? 'amber' : 'green');
+        return ['years' => $years, 'pct' => $pct, 'color' => $color, 'life' => $life];
+    };
 @endphp
 
     @if ($error)
@@ -182,6 +195,13 @@
                                     </span>
                                     @if ($hostName)<span class="sub">Tag: {{ $item['asset_tag'] ?? '—' }}</span>@endif
                                     <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
+                                    @php $ag = $aging($item['date_buy'] ?? null); @endphp
+                                    @if ($ag)
+                                        <div class="aging" title="≈ {{ $ag['years'] }} yr of {{ $ag['life'] }} yr lifespan">
+                                            <div class="aging-head"><span>Aging</span><span>{{ $ag['years'] }} yr / {{ $ag['life'] }} yr</span></div>
+                                            <div class="aging-track"><div class="aging-fill aging-{{ $ag['color'] }}" style="width:{{ round($ag['pct']) }}%"></div></div>
+                                        </div>
+                                    @endif
                                     <span class="meta">{{ $item['checked_by'] ?: 'Unknown' }} · {{ $checkedAt }}</span>
                                 </div>
                             </a>

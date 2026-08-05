@@ -22,7 +22,7 @@
         // Show the checklist relevant to this asset's category, plus the found status.
         $catKey = strtolower(trim((string) ($item['category'] ?? '')));
         $cfg = config('checklist') ?? [];
-        $catFields = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical Condition'];
+        $catFields = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical in Good Condition'];
         $fields = ['asset_found' => 'Asset found on site'] + $catFields;
         $checks = [];
         foreach ($fields as $field => $label) {

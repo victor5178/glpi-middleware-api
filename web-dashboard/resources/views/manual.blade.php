@@ -99,6 +99,7 @@
                                    'model'         => $r['name'],
                                    'assigned_user' => $r['contact'],
                                    'glpi_comment'  => $r['comment'],
+                                   'date_buy'      => ($r['date_buy'] ?? null) ?: ($r['date_creation'] ?? null),
                                ], fn ($v) => $v !== null && $v !== '')) }}">Use this asset</a>
                         </div>
                     </div>
@@ -117,6 +118,7 @@
         <input type="hidden" name="category" value="{{ old('category', request('category')) }}">
         <input type="hidden" name="model" value="{{ old('model', request('model')) }}">
         <input type="hidden" name="assigned_user" value="{{ old('assigned_user', request('assigned_user')) }}">
+        <input type="hidden" name="date_buy" value="{{ old('date_buy', request('date_buy')) }}">
 
         @php
             $glpiComment = old('glpi_comment', request('glpi_comment'));
@@ -203,7 +205,7 @@
                     // "Use this asset" step). Unknown category → the default list.
                     $catKey = strtolower(trim((string) old('category', request('category'))));
                     $cfg = config('checklist') ?? [];
-                    $checks = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical Condition'];
+                    $checks = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical in Good Condition'];
                 @endphp
                 <label class="check" style="margin-bottom:10px;">
                     <input type="checkbox" name="asset_found" value="1" @checked(old('asset_found', '1') == '1')>

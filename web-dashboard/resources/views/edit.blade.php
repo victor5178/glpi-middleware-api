@@ -74,7 +74,7 @@
                 @php
                     $catKey = strtolower(trim((string) ($item['category'] ?? '')));
                     $cfg = config('checklist') ?? [];
-                    $checks = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical Condition'];
+                    $checks = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical in Good Condition'];
                 @endphp
                 <label class="check" style="margin-bottom:10px;">
                     <input type="checkbox" name="asset_found" value="1" @checked((int) old('asset_found', $item['asset_found'] ?? 0) === 1)>

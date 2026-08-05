@@ -17,34 +17,34 @@ return [
 
     'by_category' => [
         'computer' => [
-            'is_physical_good'   => 'Physical Condition',
+            'is_physical_good'   => 'Physical in Good Condition',
             'is_patch_latest'    => 'OS latest patches',
             'is_endpoint_latest' => 'Endpoint latest patches',
         ],
         'desktop' => [
-            'is_physical_good'   => 'Physical Condition',
+            'is_physical_good'   => 'Physical in Good Condition',
             'is_patch_latest'    => 'OS latest patches',
             'is_endpoint_latest' => 'Endpoint latest patches',
         ],
         'laptop' => [
-            'is_physical_good'   => 'Physical Condition',
+            'is_physical_good'   => 'Physical in Good Condition',
             'is_patch_latest'    => 'OS latest patches',
             'is_endpoint_latest' => 'Endpoint latest patches',
         ],
         'monitor' => [
-            'is_physical_good'   => 'Physical Condition',
+            'is_physical_good'   => 'Physical in Good Condition',
             'is_monitor_working' => 'Monitor Working',
         ],
         'network' => [
-            'is_physical_good' => 'Physical Condition',
+            'is_physical_good' => 'Physical in Good Condition',
             'led_normal'       => 'Normal LEDs light',
         ],
         'networkequipment' => [
-            'is_physical_good' => 'Physical Condition',
+            'is_physical_good' => 'Physical in Good Condition',
             'led_normal'       => 'Normal LEDs light',
         ],
         'printer' => [
-            'is_physical_good' => 'Physical Condition',
+            'is_physical_good' => 'Physical in Good Condition',
             'led_normal'       => 'Normal LEDs light',
             'no_fault'         => 'Working in good condition',
         ],
@@ -52,7 +52,7 @@ return [
 
     // Used when the category is unknown / not one of the above.
     'default' => [
-        'is_physical_good' => 'Physical Condition',
+        'is_physical_good' => 'Physical in Good Condition',
     ],
 
     /*
