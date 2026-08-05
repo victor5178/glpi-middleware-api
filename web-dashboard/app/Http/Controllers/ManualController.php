@@ -88,6 +88,57 @@ class ManualController extends Controller
         ]);
     }
 
+    /** Show the "add a missing asset to GLPI" form. */
+    public function addForm(Request $request)
+    {
+        return view('add-asset', [
+            'serial' => trim((string) $request->query('serial', '')),
+            'types' => ['Computer', 'Monitor', 'Printer', 'Peripheral', 'NetworkEquipment'],
+        ]);
+    }
+
+    /** Create a missing asset in GLPI, flagged as "additional". */
+    public function addStore(Request $request, GlpiClient $glpi)
+    {
+        $data = $request->validate([
+            'itemtype' => 'required|string|max:40',
+            'name' => 'required|string|max:150',
+            'serial' => 'nullable|string|max:100',
+            'otherserial' => 'nullable|string|max:100',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        $username = $request->session()->get('glpi_user');
+        $password = null;
+        if ($enc = $request->session()->get('glpi_pw')) {
+            try {
+                $password = Crypt::decryptString($enc);
+            } catch (\Throwable $e) {
+                $password = null;
+            }
+        }
+
+        // Flag the asset as additional in the GLPI comment.
+        $marker = '[ADDITIONAL] Added via ITD audit by '.($username ?: 'unknown').' on '.now('Asia/Kuching')->format('Y-m-d H:i');
+        $comment = ! empty($data['comment']) ? $marker."\n".$data['comment'] : $marker;
+
+        $fields = array_filter([
+            'name' => $data['name'],
+            'serial' => $data['serial'] ?? null,
+            'otherserial' => $data['otherserial'] ?? null,
+            'comment' => $comment,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        $result = $glpi->createAsset($username, $password, $data['itemtype'], $fields);
+        if (! ($result['ok'] ?? false)) {
+            return back()->withInput()->with('error', 'Could not create the asset in GLPI: '.($result['error'] ?? 'unknown error'));
+        }
+
+        $q = $data['serial'] ?: $data['name'];
+        return redirect()->route('manual.create', ['q' => $q])
+            ->with('success', 'Asset created in GLPI (#'.($result['id'] ?? '?').') and flagged as additional.');
+    }
+
     /** Submit a manually entered audit result + uploaded photos. */
     public function store(Request $request, MiddlewareClient $client)
     {
@@ -103,6 +154,7 @@ class ManualController extends Controller
             'category' => 'nullable|string|max:50',
             'model' => 'nullable|string|max:100',
             'assigned_user' => 'nullable|string|max:100',
+            'fa_tagging' => 'nullable|string|max:100',
             'photos.*' => 'nullable|image|max:51200', // 50 MB, matches middleware
         ]);
 
@@ -153,6 +205,7 @@ class ManualController extends Controller
             'is_ups_working' => $flag('is_ups_working'),
             'led_normal' => $flag('led_normal'),
             'no_fault' => $flag('no_fault'),
+            'fa_tagging' => $validated['fa_tagging'] ?? null,
             'additional_info' => $validated['additional_info'] ?? null,
             // Authoritative: always the logged-in user, not whatever was posted.
             'checked_by' => $request->session()->get('glpi_user') ?: $validated['checked_by'],

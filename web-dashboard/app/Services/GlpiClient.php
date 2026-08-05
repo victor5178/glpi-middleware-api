@@ -122,10 +122,13 @@ class GlpiClient
             $results[] = [
                 'type' => $type,
                 'id' => $id,
-                'name' => $item['name'] ?? null,
-                'serial' => $item['serial'] ?? null,
-                'otherserial' => $item['otherserial'] ?? null,
-                'contact' => $item['contact'] ?? null,
+                'name' => $this->cleanText($item['name'] ?? null),
+                'serial' => $this->cleanText($item['serial'] ?? null),
+                'otherserial' => $this->cleanText($item['otherserial'] ?? null),
+                'contact' => $this->cleanText($item['contact'] ?? null),
+                'comment' => $this->cleanText($item['comment'] ?? null),
+                'date_buy' => $item['date_buy'] ?? null,
+                'date_creation' => $item['date_creation'] ?? null,
             ];
         };
 
@@ -280,6 +283,52 @@ class GlpiClient
             return is_array($json) ? array_filter($json, 'is_array') : [];
         } catch (\Throwable $e) {
             return [];
+        }
+    }
+
+    /**
+     * Create a new asset in GLPI. Returns ['ok'=>bool, 'id'=>?int, 'type'=>string]
+     * or ['ok'=>false,'error'=>string]. Requires the GLPI account to have write
+     * permission on the item type.
+     *
+     * @param array<string, mixed> $fields GLPI "input" fields (name, serial, …)
+     */
+    public function createAsset(?string $username, ?string $password, string $itemtype, array $fields): array
+    {
+        if (! in_array($itemtype, $this->types, true)) {
+            $itemtype = 'Computer';
+        }
+        if ($username !== null && $username !== '' && $password !== null && $password !== '') {
+            $session = $this->attemptLogin($username, $password);
+        } elseif ($this->isConfigured()) {
+            $session = $this->initSession();
+        } else {
+            $this->lastError = 'GLPI is not configured.';
+            return ['ok' => false, 'error' => $this->lastError];
+        }
+        if ($session === null) {
+            return ['ok' => false, 'error' => $this->lastError];
+        }
+
+        try {
+            $resp = Http::timeout($this->timeout)
+                ->withHeaders(['App-Token' => $this->appToken, 'Session-Token' => $session])
+                ->post($this->baseUrl.'/'.$itemtype, ['input' => $fields]);
+
+            if (! $resp->successful()) {
+                $body = $resp->json();
+                $msg = is_array($body)
+                    ? implode(' — ', array_map(fn ($x) => is_string($x) ? $x : json_encode($x), $body))
+                    : $resp->body();
+                return ['ok' => false, 'error' => 'GLPI create failed (HTTP '.$resp->status().')'.($msg ? ': '.$msg : '')];
+            }
+            $json = $resp->json();
+            $id = is_array($json) ? ($json['id'] ?? ($json[0]['id'] ?? null)) : null;
+            return ['ok' => true, 'id' => $id, 'type' => $itemtype];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => 'Could not reach GLPI ('.$e->getMessage().').'];
+        } finally {
+            $this->killSession($session);
         }
     }
 

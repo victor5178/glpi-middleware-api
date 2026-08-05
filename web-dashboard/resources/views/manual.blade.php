@@ -36,14 +36,38 @@
     </form>
 
     @if ($q !== '')
+        @php
+            // Aging: age vs configured lifespan → coloured bar.
+            $aging = function ($buy, $create) {
+                $src = $buy ?: $create;
+                if (empty($src)) return null;
+                try { $d = \Illuminate\Support\Carbon::parse($src); } catch (\Throwable $e) { return null; }
+                if ($d->year < 1990 || $d->isFuture()) return null;
+                $years = round($d->floatDiffInYears(now()), 1);
+                $life = (float) config('services.glpi.asset_life_years', 5);
+                $pct = max(4, min(100, ($years / max(0.1, $life)) * 100));
+                $color = $pct >= 100 ? 'red' : ($pct >= 70 ? 'amber' : 'green');
+                return ['years' => $years, 'pct' => $pct, 'color' => $color, 'life' => $life];
+            };
+        @endphp
+
+        {{-- Can't find it? Add the asset to GLPI (prominent, top of results) --}}
+        <div class="add-banner">
+            <span>Can’t find the asset below?</span>
+            <a class="btn btn-primary" href="{{ route('glpi.add', ['serial' => $q]) }}">+ Add asset to GLPI</a>
+        </div>
+
         @if ($glpiError)
             <div class="alert alert-warn">{{ $glpiError }}</div>
         @elseif (empty($glpiResults))
-            <div class="alert alert-muted">No GLPI assets matched “{{ $q }}”.</div>
+            <div class="alert alert-muted">No GLPI assets matched “{{ $q }}”. Use <strong>Add asset to GLPI</strong> above to create it.</div>
         @else
             <div class="grid" style="margin-bottom:22px;">
                 @foreach ($glpiResults as $r)
-                    @php $tag = $r['otherserial'] ?: ($r['serial'] ?: ''); @endphp
+                    @php
+                        $tag = $r['otherserial'] ?: ($r['serial'] ?: '');
+                        $ag = $aging($r['date_buy'] ?? null, $r['date_creation'] ?? null);
+                    @endphp
                     <div class="asset" style="cursor:default;">
                         <div class="body">
                             <div class="row1">
@@ -56,6 +80,15 @@
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                 {{ $r['contact'] ?: '—' }}
                             </span>
+                            @if (! empty($r['comment']))
+                                <span class="sub" style="white-space:pre-wrap;"><strong>Comment:</strong> {{ \Illuminate\Support\Str::limit($r['comment'], 180) }}</span>
+                            @endif
+                            @if ($ag)
+                                <div class="aging" title="≈ {{ $ag['years'] }} yr of {{ $ag['life'] }} yr lifespan">
+                                    <div class="aging-head"><span>Aging</span><span>{{ $ag['years'] }} yr / {{ $ag['life'] }} yr</span></div>
+                                    <div class="aging-track"><div class="aging-fill aging-{{ $ag['color'] }}" style="width:{{ round($ag['pct']) }}%"></div></div>
+                                </div>
+                            @endif
                             <span class="meta">GLPI ID: {{ $r['id'] }}</span>
                             <a class="btn btn-primary" style="margin-top:10px;align-self:flex-start;"
                                href="{{ route('manual.create', array_filter([
@@ -65,6 +98,7 @@
                                    'category'      => $r['type'],
                                    'model'         => $r['name'],
                                    'assigned_user' => $r['contact'],
+                                   'glpi_comment'  => $r['comment'],
                                ], fn ($v) => $v !== null && $v !== '')) }}">Use this asset</a>
                         </div>
                     </div>
@@ -84,6 +118,7 @@
         <input type="hidden" name="model" value="{{ old('model', request('model')) }}">
         <input type="hidden" name="assigned_user" value="{{ old('assigned_user', request('assigned_user')) }}">
 
+        @php $glpiComment = old('glpi_comment', request('glpi_comment')); @endphp
         @if (old('glpi_id', request('glpi_id')) || old('serial_number', request('serial_number')))
             <div class="alert alert-muted" style="margin-bottom:16px;">
                 Linked to GLPI asset
@@ -91,6 +126,9 @@
                 @if (old('serial_number', request('serial_number')))· Serial {{ old('serial_number', request('serial_number')) }}@endif
                 @if (old('category', request('category')))· {{ old('category', request('category')) }}@endif.
                 It will be added to the inventory on submit.
+                @if ($glpiComment)
+                    <div style="margin-top:8px;white-space:pre-wrap;"><strong>GLPI comment:</strong> {{ $glpiComment }}</div>
+                @endif
             </div>
         @endif
 
@@ -154,21 +192,32 @@
                     $cfg = config('checklist') ?? [];
                     $checks = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical Condition'];
                 @endphp
-                <label class="check" style="margin-bottom:10px;">
-                    <input type="checkbox" name="asset_found" value="1" @checked(old('asset_found', '1') == '1')>
-                    Asset found on site
-                </label>
-                <div class="section-label" style="margin-top:0;">
-                    Checklist @if($catKey !== '')<span class="pill pill-muted" style="margin-left:6px;">{{ ucfirst($catKey) }}</span>@endif
-                </div>
-                <div class="checks-grid">
-                    @foreach ($checks as $name => $label)
-                        <label class="check">
-                            <input type="checkbox" name="{{ $name }}" value="1"
-                                @checked(old($name, '1') == '1')>
-                            {{ $label }}
+                <div class="checklist-row">
+                    <div class="checklist-main">
+                        <label class="check" style="margin-bottom:10px;">
+                            <input type="checkbox" name="asset_found" value="1" @checked(old('asset_found', '1') == '1')>
+                            Asset found on site
                         </label>
-                    @endforeach
+                        <div class="section-label" style="margin-top:0;">
+                            Checklist @if($catKey !== '')<span class="pill pill-muted" style="margin-left:6px;">{{ ucfirst($catKey) }}</span>@endif
+                        </div>
+                        <div class="checks-grid">
+                            @foreach ($checks as $name => $label)
+                                <label class="check">
+                                    <input type="checkbox" name="{{ $name }}" value="1"
+                                        @checked(old($name, '1') == '1')>
+                                    {{ $label }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="fa-side">
+                        <div class="form-field">
+                            <label>FA Tagging</label>
+                            <input class="input" name="fa_tagging" value="{{ old('fa_tagging', request('fa_tagging')) }}" placeholder="Fixed asset tag no." />
+                            <p style="color:var(--muted);font-size:.78rem;margin:6px 0 0;">Fixed Asset Tagging number.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-field" style="margin-top:14px;">

@@ -22,6 +22,8 @@ Route::middleware('auth.glpi')->group(function () {
     Route::get('/manual', [ManualController::class, 'create'])->name('manual.create');
     Route::post('/manual', [ManualController::class, 'store'])->name('manual.store');
     Route::get('/manual/check-duplicate', [ManualController::class, 'checkDuplicate'])->name('manual.check');
+    Route::get('/glpi/add-asset', [ManualController::class, 'addForm'])->name('glpi.add');
+    Route::post('/glpi/add-asset', [ManualController::class, 'addStore'])->name('glpi.add.store');
 
     Route::get('/scan', [ManualController::class, 'scan'])->name('scan');
 

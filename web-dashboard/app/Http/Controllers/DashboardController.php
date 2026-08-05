@@ -84,6 +84,7 @@ class DashboardController extends Controller
             'actual_location_id' => 'required|integer',
             'actual_user' => 'nullable|string|max:100',
             'additional_info' => 'nullable|string',
+            'fa_tagging' => 'nullable|string|max:100',
             'asset_tag' => 'nullable|string|max:100',
             'remove_images' => 'nullable|array',
             'remove_images.*' => 'string',
@@ -107,6 +108,7 @@ class DashboardController extends Controller
             'is_ups_working' => $flag('is_ups_working'),
             'led_normal' => $flag('led_normal'),
             'no_fault' => $flag('no_fault'),
+            'fa_tagging' => $validated['fa_tagging'] ?? null,
         ];
 
         $result = $client->updateResult($resultId, $payload);

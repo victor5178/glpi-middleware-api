@@ -84,6 +84,7 @@
                     <table class="kv">
                         <tr><th>Serial</th><td>{{ $item['serial_number'] ?? '—' }}</td></tr>
                         <tr><th>Model</th><td>{{ $item['model'] ?? '—' }}</td></tr>
+                        <tr><th>FA tagging</th><td>{{ $item['fa_tagging'] ?: '—' }}</td></tr>
                         <tr><th>Assigned user</th><td>{{ $item['assigned_user'] ?? '—' }}</td></tr>
                         <tr><th>Actual user</th><td>{{ $item['actual_user'] ?: '—' }}</td></tr>
                         <tr><th>Location</th><td>{{ $locationLabel ?? ('id '.($item['actual_location_id'] ?? '—')) }}</td></tr>

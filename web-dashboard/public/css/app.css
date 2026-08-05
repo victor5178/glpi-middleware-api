@@ -312,6 +312,28 @@ a:hover { text-decoration: underline; }
 .scan-search input { border: 0; outline: none; width: 100%; font-size: .95rem; background: transparent; }
 .asset.search-hit { outline: 2px solid var(--brand); outline-offset: 1px; box-shadow: 0 0 0 4px var(--brand-100); }
 
+/* Add-missing-asset banner */
+.add-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    background: var(--brand-100, #e8f0fe); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 16px; margin: 4px 0 16px; font-weight: 600;
+}
+
+/* Aging threshold bar (GLPI result cards) */
+.aging { margin: 8px 0 2px; }
+.aging-head { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-bottom: 3px; }
+.aging-track { height: 7px; border-radius: 999px; background: #e9edf3; overflow: hidden; }
+.aging-fill { height: 100%; border-radius: 999px; }
+.aging-green { background: #16a34a; }
+.aging-amber { background: #f59e0b; }
+.aging-red { background: #dc2626; }
+
+/* Checklist + FA Tagging side by side */
+.checklist-row { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; }
+.checklist-main { flex: 1; min-width: 240px; }
+.fa-side { width: 220px; flex: none; }
+@media (max-width: 620px) { .fa-side { width: 100%; } }
+
 /* ---------- Report ---------- */
 .report { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow); }
 .report-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid var(--brand); padding-bottom: 14px; margin-bottom: 16px; flex-wrap: wrap; }

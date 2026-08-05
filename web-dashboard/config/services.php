@@ -36,6 +36,8 @@ return [
         'timeout' => (int) env('GLPI_TIMEOUT', 15),
         // GLPI status names treated as "active" in Asset Review (comma-separated).
         'active_statuses' => env('GLPI_ACTIVE_STATUSES', 'Active,In use,In-use,Inuse'),
+        // Expected asset lifespan in years — drives the aging threshold bar.
+        'asset_life_years' => (float) env('GLPI_ASSET_LIFE_YEARS', 5),
     ],
 
 ];
