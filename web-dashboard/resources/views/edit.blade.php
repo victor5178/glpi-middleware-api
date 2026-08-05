@@ -60,6 +60,11 @@
                         <label>Actual user</label>
                         <input class="input" name="actual_user" value="{{ old('actual_user', $item['actual_user'] ?? '') }}" placeholder="Person using the asset" />
                     </div>
+
+                    <div class="form-field">
+                        <label>FA Tagging</label>
+                        <input class="input" id="faTagging" name="fa_tagging" value="{{ old('fa_tagging', $item['fa_tagging'] ?? '') }}" placeholder="e.g. DM/SDK/CHW/0245-A" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -71,32 +76,21 @@
                     $cfg = config('checklist') ?? [];
                     $checks = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical Condition'];
                 @endphp
-                <div class="checklist-row">
-                    <div class="checklist-main">
-                        <label class="check" style="margin-bottom:10px;">
-                            <input type="checkbox" name="asset_found" value="1" @checked((int) old('asset_found', $item['asset_found'] ?? 0) === 1)>
-                            Asset found on site
+                <label class="check" style="margin-bottom:10px;">
+                    <input type="checkbox" name="asset_found" value="1" @checked((int) old('asset_found', $item['asset_found'] ?? 0) === 1)>
+                    Asset found on site
+                </label>
+                <div class="section-label" style="margin-top:0;">
+                    Checklist @if($catKey !== '')<span class="pill pill-muted" style="margin-left:6px;">{{ ucfirst($catKey) }}</span>@endif
+                </div>
+                <div class="checks-grid">
+                    @foreach ($checks as $name => $label)
+                        <label class="check">
+                            <input type="checkbox" name="{{ $name }}" value="1"
+                                @checked((int) old($name, $item[$name] ?? 0) === 1)>
+                            {{ $label }}
                         </label>
-                        <div class="section-label" style="margin-top:0;">
-                            Checklist @if($catKey !== '')<span class="pill pill-muted" style="margin-left:6px;">{{ ucfirst($catKey) }}</span>@endif
-                        </div>
-                        <div class="checks-grid">
-                            @foreach ($checks as $name => $label)
-                                <label class="check">
-                                    <input type="checkbox" name="{{ $name }}" value="1"
-                                        @checked((int) old($name, $item[$name] ?? 0) === 1)>
-                                    {{ $label }}
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
-                    <div class="fa-side">
-                        <div class="form-field">
-                            <label>FA Tagging</label>
-                            <input class="input" name="fa_tagging" value="{{ old('fa_tagging', $item['fa_tagging'] ?? '') }}" placeholder="Fixed asset tag no." />
-                            <p style="color:var(--muted);font-size:.78rem;margin:6px 0 0;">Fixed Asset Tagging number.</p>
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
 
                 <div class="form-field" style="margin-top:14px;">
@@ -175,6 +169,21 @@
             preview: document.getElementById('photoPreview'),
             maxEdge: 2000, quality: 0.7
         });
+    </script>
+
+    {{-- Auto-capture a Fixed Asset tag (a token with 3 slashes) from Notes --}}
+    <script>
+    (function () {
+        var notes = document.querySelector('textarea[name="additional_info"]');
+        var fa = document.getElementById('faTagging');
+        if (!notes || !fa) return;
+        var re = /(?:^|\s)([^\s\/]+(?:\/[^\s\/]+){3})(?=\s|$)/;
+        notes.addEventListener('input', function () {
+            if (fa.value.trim() !== '') return;
+            var m = re.exec(notes.value);
+            if (m) fa.value = m[1];
+        });
+    })();
     </script>
 
 @endsection
