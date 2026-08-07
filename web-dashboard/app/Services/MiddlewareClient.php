@@ -51,7 +51,9 @@ class MiddlewareClient
     /** Look up a single asset by its asset_tag (returns null if not found). */
     public function getAsset(string $assetTag): ?array
     {
-        $json = $this->getJson('/api/assets/'.rawurlencode($assetTag));
+        // Look up by query string, not a path segment: asset tags can contain
+        // slashes/spaces (e.g. "PE/MYY-HQ/CHW/0009 (A)") which break URL paths.
+        $json = $this->getJson('/api/assets', ['asset_tag' => $assetTag]);
         return is_array($json) ? $json : null;
     }
 
