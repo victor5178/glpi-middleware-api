@@ -107,7 +107,7 @@
     @if (! empty($groups))
         <div class="scan-search">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input type="search" id="scanSearch" placeholder="Search user, asset name, tag, serial, category, location…" autocomplete="off">
+            <input type="search" id="scanSearch" placeholder="Search user, asset name, tag, serial, FA tag, category, location…" autocomplete="off">
         </div>
     @endif
 
@@ -165,6 +165,7 @@
                                 $searchHay = strtolower(trim(implode(' ', array_filter([
                                     $deviceName, $item['asset_tag'] ?? '', $item['serial_number'] ?? '',
                                     $item['model'] ?? '', $category, $site, $cardUser,
+                                    $item['fa_tagging'] ?? '',
                                 ]))));
                             @endphp
                             <a class="asset" data-asset="{{ $searchHay }}" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
@@ -195,6 +196,7 @@
                                     </span>
                                     @if ($hostName)<span class="sub">Tag: {{ $item['asset_tag'] ?? '—' }}</span>@endif
                                     <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
+                                    @if (! empty($item['fa_tagging']))<span class="sub">FA: {{ $item['fa_tagging'] }}</span>@endif
                                     @php $ag = $aging($item['date_buy'] ?? null); @endphp
                                     @if ($ag)
                                         <div class="aging" title="≈ {{ $ag['years'] }} yr of {{ $ag['life'] }} yr lifespan">
