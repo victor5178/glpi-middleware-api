@@ -9,6 +9,7 @@
         default     => 'status-pending',
     };
     $fmt = fn ($d, $f = 'd M Y') => $d ? \Illuminate\Support\Carbon::parse($d)->format($f) : '—';
+    $isForm10 = \Illuminate\Support\Str::contains((string) ($form['form_type'] ?? ''), 'Form 10');
 @endphp
 
 @section('content')
@@ -119,7 +120,8 @@
                     <textarea class="textarea" name="remarks" rows="3">{{ old('remarks', $form['remarks']) }}</textarea>
                 </div>
 
-                {{-- Email forwarding (Form 10) --}}
+                {{-- Email forwarding (Form 10 only) --}}
+                @if ($isForm10)
                 <div class="section-label">Email forwarding</div>
                 <label class="check" style="margin-bottom:10px;">
                     <input type="checkbox" name="email_forwarding" value="1" @checked(old('email_forwarding', $form['email_forwarding'] ?? 0))>
@@ -139,6 +141,7 @@
                     <input type="checkbox" name="forwarding_done" value="1" @checked(old('forwarding_done', $form['forwarding_done'] ?? 0))>
                     Forwarding disabled (clears the indicator)
                 </label>
+                @endif
 
                 <div style="margin-top:14px;">
                     <button type="submit" class="btn btn-primary">Save changes</button>

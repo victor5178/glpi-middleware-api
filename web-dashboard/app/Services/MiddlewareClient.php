@@ -245,7 +245,9 @@ class MiddlewareClient
             $req = Http::timeout(max($this->timeout, 60));
             foreach ($files as $f) {
                 if ($f && method_exists($f, 'getRealPath') && $f->isValid()) {
-                    $req = $req->attach('images[]', file_get_contents($f->getRealPath()), $f->getClientOriginalName());
+                    // Field name must be 'images' (not 'images[]') to match the
+                    // middleware's multer .array('images') — repeated for each file.
+                    $req = $req->attach('images', file_get_contents($f->getRealPath()), $f->getClientOriginalName());
                 }
             }
             $resp = $req->post($this->baseUrl.'/api/forms', $fields);

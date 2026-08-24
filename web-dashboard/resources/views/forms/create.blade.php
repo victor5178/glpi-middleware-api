@@ -72,8 +72,8 @@
             </div>
         </div>
 
-        {{-- Email forwarding (Form 10: IT System Deactivation) --}}
-        <div class="card" style="margin-top:16px;">
+        {{-- Email forwarding — only shown for Form 10 (IT System Deactivation) --}}
+        <div class="card" id="fwdCard" style="margin-top:16px;display:none;">
             <div class="card-body">
                 <div class="section-label" style="margin-top:0;">Email forwarding <span style="color:var(--muted);font-weight:400;font-size:.8rem;">(Form 10 — deactivation)</span></div>
                 <label class="check" style="margin-bottom:10px;">
@@ -126,11 +126,17 @@
             preview: document.getElementById('photoPreview'),
             maxEdge: 2200, quality: 0.72
         });
-        // Reveal the free-text box only when "Other" is chosen as the form type.
+        // Reveal the free-text box only when "Other" is chosen; show the Email
+        // forwarding card only for Form 10.
         (function () {
-            var sel = document.getElementById('formType'), other = document.getElementById('formTypeOther');
-            if (!sel || !other) return;
-            function sync() { other.style.display = (sel.value === 'Other') ? '' : 'none'; }
+            var sel = document.getElementById('formType'),
+                other = document.getElementById('formTypeOther'),
+                fwd = document.getElementById('fwdCard');
+            if (!sel) return;
+            function sync() {
+                if (other) other.style.display = (sel.value === 'Other') ? '' : 'none';
+                if (fwd) fwd.style.display = (sel.value.indexOf('Form 10') === 0) ? '' : 'none';
+            }
             sel.addEventListener('change', sync); sync();
         })();
         // Dim the forwarding detail fields until forwarding is ticked.
