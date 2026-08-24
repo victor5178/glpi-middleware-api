@@ -16,7 +16,7 @@ return [
     'templates' => [
         'Form 1 — New Computer & Network User Application',
         'Form 2 — IT Asset Purchase Requisition',
-        'Leave Application',
+        'Form 3 — I.T. Task Requisition',
         'Service Request',
         'Asset Movement / Transfer',
     ],
