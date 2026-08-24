@@ -87,16 +87,20 @@ class FormsController extends Controller
             'images.*.mimes'  => 'Each file must be an image (JPG, PNG, GIF, WebP, BMP) or a PDF.',
         ]);
 
+        $formType = $this->resolveFormType($request);
+        // Email forwarding only applies to Form 10 — ignore it on any other form.
+        $isForm10 = \Illuminate\Support\Str::contains((string) $formType, 'Form 10');
+
         $fields = [
-            'form_type'     => $this->resolveFormType($request),
+            'form_type'     => $formType,
             'reference_no'  => $data['reference_no'] ?? null,
             'received_date' => $data['received_date'] ?? null,
             'from_party'    => $data['from_party'] ?? null,
             'company'       => $data['company'] ?? null,
             'remarks'       => $data['remarks'] ?? null,
-            'email_forwarding' => $request->boolean('email_forwarding') ? 1 : 0,
-            'forward_to'    => $data['forward_to'] ?? null,
-            'forward_until' => $data['forward_until'] ?? null,
+            'email_forwarding' => ($isForm10 && $request->boolean('email_forwarding')) ? 1 : 0,
+            'forward_to'    => $isForm10 ? ($data['forward_to'] ?? null) : null,
+            'forward_until' => $isForm10 ? ($data['forward_until'] ?? null) : null,
             'created_by'    => session('glpi_user'),
         ];
         $fields = array_filter($fields, fn ($v) => $v !== null);
@@ -141,9 +145,14 @@ class FormsController extends Controller
 
         $data['form_type'] = $this->resolveFormType($request);
         $data['actor'] = session('glpi_user');
-        // Booleans are sent explicitly (unchecked box = 0), so they must always go.
-        $data['email_forwarding'] = $request->boolean('email_forwarding') ? 1 : 0;
-        $data['forwarding_done'] = $request->boolean('forwarding_done') ? 1 : 0;
+        // Email forwarding only applies to Form 10 — force it off on any other form.
+        $isForm10 = \Illuminate\Support\Str::contains((string) $data['form_type'], 'Form 10');
+        $data['email_forwarding'] = ($isForm10 && $request->boolean('email_forwarding')) ? 1 : 0;
+        $data['forwarding_done'] = ($isForm10 && $request->boolean('forwarding_done')) ? 1 : 0;
+        if (! $isForm10) {
+            $data['forward_to'] = null;
+            $data['forward_until'] = null;
+        }
 
         $payload = array_filter($data, fn ($v) => $v !== null);
         // Keep the boolean fields even when 0 (array_filter drops 0/false-y).
