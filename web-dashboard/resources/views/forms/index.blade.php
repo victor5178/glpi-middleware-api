@@ -90,7 +90,12 @@
                         @if (!empty($form['company']))<span class="sub">{{ $form['company'] }}</span>@endif
                         @if (!empty($form['from_party']))<span class="sub">From: {{ $form['from_party'] }}</span>@endif
                         @if (\App\Http\Controllers\FormsController::forwardingActive($form))
-                            <span class="fwd-chip">↪ Fwd@if(!empty($form['forward_until'])) until {{ \Illuminate\Support\Carbon::parse($form['forward_until'])->format('d M') }}@endif</span>
+                            @php
+                                $fwdUntil = ! empty($form['forward_until'])
+                                    ? \Illuminate\Support\Carbon::parse($form['forward_until'])->format('d M')
+                                    : null;
+                            @endphp
+                            <span class="fwd-chip">↪ Fwd{{ $fwdUntil ? ' until '.$fwdUntil : '' }}</span>
                         @endif
                         @if (!empty($form['has_signature']))<span class="sig-chip sig-yes">✓ signed</span>@endif
                         <span class="meta">
