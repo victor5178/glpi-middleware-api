@@ -44,6 +44,7 @@ class FormsController extends Controller
             'reference_no'  => 'nullable|string|max:150',
             'received_date' => 'nullable|date',
             'from_party'    => 'nullable|string|max:200',
+            'company'       => 'nullable|string|max:200',
             'remarks'       => 'nullable|string',
             'images'        => 'required|array|min:1',
             'images.*'      => 'file|mimes:jpeg,jpg,png,gif,webp,bmp,pdf|max:51200', // 50 MB, matches middleware
@@ -53,10 +54,11 @@ class FormsController extends Controller
         ]);
 
         $fields = [
-            'form_type'     => $data['form_type'] ?? null,
+            'form_type'     => $this->resolveFormType($request),
             'reference_no'  => $data['reference_no'] ?? null,
             'received_date' => $data['received_date'] ?? null,
             'from_party'    => $data['from_party'] ?? null,
+            'company'       => $data['company'] ?? null,
             'remarks'       => $data['remarks'] ?? null,
             'created_by'    => session('glpi_user'),
         ];
@@ -92,18 +94,34 @@ class FormsController extends Controller
             'reference_no'  => 'nullable|string|max:150',
             'received_date' => 'nullable|date',
             'from_party'    => 'nullable|string|max:200',
+            'company'       => 'nullable|string|max:200',
             'remarks'       => 'nullable|string',
             'status'        => 'nullable|in:'.implode(',', self::STATUSES),
             'note'          => 'nullable|string|max:255',
         ]);
 
+        $data['form_type'] = $this->resolveFormType($request);
         $data['actor'] = session('glpi_user');
 
         $ok = $client->updateForm($id, array_filter($data, fn ($v) => $v !== null));
 
+        if (! $ok) {
+            return back()->withInput()->with('error', $client->lastError ?? 'Could not update the form.');
+        }
+
+        $redirect = redirect()->route('forms.show', ['id' => $id])->with('success', 'Form updated.');
+        // WARN-ONLY completion gate: surface a middleware warning without blocking.
+        return $client->lastWarning ? $redirect->with('warning', $client->lastWarning) : $redirect;
+    }
+
+    /** Re-run the OCR + signature pipeline on the stored files. */
+    public function reprocess(int $id, MiddlewareClient $client)
+    {
+        $ok = $client->reprocessForm($id);
+
         return $ok
-            ? redirect()->route('forms.show', ['id' => $id])->with('success', 'Form updated.')
-            : back()->withInput()->with('error', $client->lastError ?? 'Could not update the form.');
+            ? redirect()->route('forms.show', ['id' => $id])->with('success', 'OCR & signature detection re-run.')
+            : back()->with('error', $client->lastError ?? 'Could not reprocess the form.');
     }
 
     public function destroy(int $id, MiddlewareClient $client)
@@ -113,5 +131,19 @@ class FormsController extends Controller
         return $ok
             ? redirect()->route('forms.index')->with('success', 'Form deleted (snapshot kept in the Audit Trail).')
             : back()->with('error', $client->lastError ?? 'Could not delete the form.');
+    }
+
+    /**
+     * The Form type comes from a dropdown of known templates, or the free-text
+     * "Other" box when the user picked "Other". Returns the effective value.
+     */
+    protected function resolveFormType(Request $request): ?string
+    {
+        $type = trim((string) $request->input('form_type', ''));
+        if ($type === '' || strcasecmp($type, 'Other') === 0) {
+            $other = trim((string) $request->input('form_type_other', ''));
+            return $other !== '' ? $other : null;
+        }
+        return $type;
     }
 }

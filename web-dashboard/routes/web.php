@@ -66,6 +66,7 @@ Route::middleware('auth.glpi')->group(function () {
     Route::post('/forms', [FormsController::class, 'store'])->middleware('perm:forms,execute')->name('forms.store');
     Route::get('/forms/{id}', [FormsController::class, 'show'])->whereNumber('id')->middleware('perm:forms,view')->name('forms.show');
     Route::put('/forms/{id}', [FormsController::class, 'update'])->whereNumber('id')->middleware('perm:forms,edit')->name('forms.update');
+    Route::post('/forms/{id}/reprocess', [FormsController::class, 'reprocess'])->whereNumber('id')->middleware('perm:forms,edit')->name('forms.reprocess');
     Route::delete('/forms/{id}', [FormsController::class, 'destroy'])->whereNumber('id')->middleware('perm:forms,delete')->name('forms.destroy');
 
     // --- User Access administration (Administrator only) ---

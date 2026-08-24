@@ -26,6 +26,7 @@
     </div>
 
     @if (session('success'))<div class="alert alert-muted">{{ session('success') }}</div>@endif
+    @if (session('warning'))<div class="alert alert-warn">⚠ {{ session('warning') }}</div>@endif
     @if (session('error'))<div class="alert alert-warn">{{ session('error') }}</div>@endif
     @if ($errors->any())
         <div class="alert alert-warn"><ul style="margin:0 0 0 18px;">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
@@ -84,6 +85,13 @@
                         <input class="input" name="from_party" value="{{ old('from_party', $form['from_party']) }}">
                     </div>
                     <div class="form-field">
+                        <label>Company</label>
+                        <input class="input" name="company" value="{{ old('company', $form['company'] ?? '') }}" list="companyList">
+                        <datalist id="companyList">
+                            @foreach (config('forms.companies', []) as $c)<option value="{{ $c }}">@endforeach
+                        </datalist>
+                    </div>
+                    <div class="form-field">
                         <label>Status</label>
                         <select class="select" name="status" style="min-width:0;">
                             @foreach ($statuses as $s)
@@ -118,6 +126,7 @@
                         <tr><th>Reference no.</th><td>{{ $form['reference_no'] ?: '—' }}</td></tr>
                         <tr><th>Date received</th><td>{{ $fmt($form['received_date']) }}</td></tr>
                         <tr><th>From</th><td>{{ $form['from_party'] ?: '—' }}</td></tr>
+                        <tr><th>Company</th><td>{{ $form['company'] ?? '' ?: '—' }}</td></tr>
                         <tr><th>Status</th><td>{{ $form['status'] }}</td></tr>
                         <tr><th>Remarks</th><td style="white-space:pre-wrap;">{{ $form['remarks'] ?: '—' }}</td></tr>
                     </table>
@@ -138,6 +147,47 @@
             @else
                 <p style="color:var(--muted);margin:0;">No text was extracted (OCR disabled, or the scan couldn’t be read).</p>
             @endif
+            @if (! empty($form['ocr_source']))
+                <p style="color:var(--muted);font-size:.78rem;margin:10px 0 0;">Source: {{ str_replace('_', ' ', $form['ocr_source']) }}</p>
+            @endif
+        </div>
+    </div>
+
+    {{-- Signatures --}}
+    <div class="card" style="margin-top:16px;">
+        <div class="card-body">
+            <div class="section-label" style="margin-top:0;">
+                Signatures
+                @if (! empty($form['has_signature']))<span class="sig-chip sig-yes">✓ signed</span>
+                @else<span class="sig-chip sig-no">no signature detected</span>@endif
+            </div>
+            @if (! empty($form['signatures']))
+                <div class="sig-list">
+                    @foreach ($form['signatures'] as $sig)
+                        <div class="sig-row">
+                            <span class="sig-dot {{ $sig['detected'] ? 'ok' : ($sig['anchor_found'] ? 'miss' : 'na') }}"></span>
+                            <span class="sig-label">{{ $sig['signer_label'] }}</span>
+                            <span class="muted">
+                                @if ($sig['detected']) detected
+                                @elseif ($sig['anchor_found']) anchor found, no ink
+                                @else label not found @endif
+                                @if (isset($sig['ink_density']) && $sig['ink_density'] !== null)
+                                    · ink {{ round($sig['ink_density'] * 100, 1) }}%
+                                @endif
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+                <p style="color:var(--muted);font-size:.78rem;margin:10px 0 0;">Heuristic detection (ink near the label) — confirms something was written, not who signed.</p>
+            @else
+                <p style="color:var(--muted);margin:0;">No signature analysis for this form (no template signers, or OCR/signature deps not enabled).</p>
+            @endif
+            @perm('forms','edit')
+                <form method="post" action="{{ route('forms.reprocess', ['id' => $form['id']]) }}" style="margin-top:12px;">
+                    @csrf
+                    <button type="submit" class="btn btn-ghost">↻ Re-run OCR &amp; signature detection</button>
+                </form>
+            @endperm
         </div>
     </div>
 

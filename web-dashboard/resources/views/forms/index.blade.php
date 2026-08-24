@@ -81,7 +81,9 @@
                             <span class="status-badge {{ $statusClass($form['status']) }}">{{ $form['status'] }}</span>
                         </div>
                         @if (!empty($form['form_type']))<span class="sub">{{ $form['form_type'] }}</span>@endif
+                        @if (!empty($form['company']))<span class="sub">{{ $form['company'] }}</span>@endif
                         @if (!empty($form['from_party']))<span class="sub">From: {{ $form['from_party'] }}</span>@endif
+                        @if (!empty($form['has_signature']))<span class="sig-chip sig-yes">✓ signed</span>@endif
                         <span class="meta">
                             @if (!empty($form['received_date'])){{ \Illuminate\Support\Carbon::parse($form['received_date'])->format('d M Y') }} · @endif
                             {{ $form['created_by'] ?: 'Unknown' }}

@@ -35,7 +35,15 @@
                 <div class="form-grid">
                     <div class="form-field">
                         <label>Form type</label>
-                        <input class="input" name="form_type" value="{{ old('form_type') }}" placeholder="e.g. Purchase Requisition">
+                        <select class="select" name="form_type" id="formType" style="min-width:0;">
+                            <option value="">— Select —</option>
+                            @foreach (config('forms.templates', []) as $t)
+                                <option value="{{ $t }}" @selected(old('form_type') === $t)>{{ $t }}</option>
+                            @endforeach
+                            <option value="Other" @selected(old('form_type') === 'Other')>Other…</option>
+                        </select>
+                        <input class="input" name="form_type_other" id="formTypeOther" value="{{ old('form_type_other') }}"
+                               placeholder="Type the form type" style="margin-top:8px;display:none;">
                     </div>
                     <div class="form-field">
                         <label>Reference no.</label>
@@ -48,6 +56,13 @@
                     <div class="form-field">
                         <label>From (sender / dept)</label>
                         <input class="input" name="from_party" value="{{ old('from_party') }}" placeholder="e.g. Finance Dept">
+                    </div>
+                    <div class="form-field">
+                        <label>Company</label>
+                        <input class="input" name="company" value="{{ old('company') }}" list="companyList" placeholder="e.g. DAI LIENG MACHINERY SDN BHD">
+                        <datalist id="companyList">
+                            @foreach (config('forms.companies', []) as $c)<option value="{{ $c }}">@endforeach
+                        </datalist>
                     </div>
                 </div>
                 <div class="form-field" style="margin-top:14px;">
@@ -89,6 +104,13 @@
             preview: document.getElementById('photoPreview'),
             maxEdge: 2200, quality: 0.72
         });
+        // Reveal the free-text box only when "Other" is chosen as the form type.
+        (function () {
+            var sel = document.getElementById('formType'), other = document.getElementById('formTypeOther');
+            if (!sel || !other) return;
+            function sync() { other.style.display = (sel.value === 'Other') ? '' : 'none'; }
+            sel.addEventListener('change', sync); sync();
+        })();
     </script>
 
 @endsection

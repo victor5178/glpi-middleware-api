@@ -426,3 +426,15 @@ a:hover { text-decoration: underline; }
     color: #b91c1c; text-decoration: none; font-size: .8rem; font-weight: 600; }
 .pdf-tile:hover { border-color: #b91c1c; }
 .pdf-tile .pdf-ico { font-size: 2rem; }
+
+/* ---- Forms: signature panel ---- */
+.sig-chip { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px; font-size: .7rem; font-weight: 600; vertical-align: middle; }
+.sig-yes { background: #dcfce7; color: #166534; }
+.sig-no  { background: #f1f5f9; color: #64748b; }
+.sig-list { display: flex; flex-direction: column; gap: 8px; }
+.sig-row { display: flex; align-items: center; gap: 9px; font-size: .9rem; }
+.sig-label { font-weight: 600; min-width: 130px; }
+.sig-dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+.sig-dot.ok   { background: #16a34a; }
+.sig-dot.miss { background: #f59e0b; }
+.sig-dot.na   { background: #cbd5e1; }

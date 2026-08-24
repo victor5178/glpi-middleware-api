@@ -19,6 +19,9 @@ class MiddlewareClient
     /** Human-readable message describing the most recent failure, if any. */
     public ?string $lastError = null;
 
+    /** Non-fatal warning returned by the last successful write (e.g. missing signature). */
+    public ?string $lastWarning = null;
+
     public function __construct()
     {
         $this->baseUrl = rtrim((string) config('services.middleware.base_url'), '/');
@@ -313,15 +316,23 @@ class MiddlewareClient
         return $this->send('delete', '/api/rbac/user-roles/'.rawurlencode($username));
     }
 
-    /** Small JSON request helper (post/put/delete) that records lastError. */
+    /** Re-run the OCR + signature pipeline on a form's stored files. */
+    public function reprocessForm(int $id): bool
+    {
+        return $this->send('post', '/api/forms/'.$id.'/reprocess');
+    }
+
+    /** Small JSON request helper (post/put/delete) that records lastError/lastWarning. */
     protected function send(string $method, string $path, array $payload = []): bool
     {
+        $this->lastWarning = null;
         try {
             $resp = Http::timeout($this->timeout)->acceptJson()->{$method}($this->baseUrl.$path, $payload);
             if (! $resp->successful()) {
                 $this->lastError = $resp->json('message') ?? "Middleware returned HTTP {$resp->status()} for {$path}.";
                 return false;
             }
+            $this->lastWarning = $resp->json('warning');
             return true;
         } catch (\Throwable $e) {
             $this->lastError = "Could not reach the middleware at {$this->baseUrl} ({$e->getMessage()}).";
