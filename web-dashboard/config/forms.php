@@ -15,7 +15,7 @@ return [
     */
     'templates' => [
         'Form 1 — New Computer & Network User Application',
-        'Purchase Requisition',
+        'Form 2 — IT Asset Purchase Requisition',
         'Leave Application',
         'Service Request',
         'Asset Movement / Transfer',
@@ -33,6 +33,7 @@ return [
         'DAI LIENG MACHINERY SDN BHD',
         'DAI LIENG BERHAD',
         'PIASAU ENGINEERING SDN BHD',
+        'MELINAU EV SDN BHD',
     ],
 
 ];
