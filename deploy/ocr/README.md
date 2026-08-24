@@ -21,11 +21,20 @@ From the folder that holds `package.json` (the middleware repo root — note
 `server.js` lives inside `node_modules/`):
 
 ```
-npm install tesseract.js pdf-parse pdf-to-img sharp
+# Pin the versions that match the code AND run on Node 18/20 LTS.
+# Do NOT `npm install pdf-parse pdf-to-img sharp` without versions — that pulls
+# pdf-parse@2 / pdf-to-img@6 which need Node >=20.19/22 and a different API.
+npm install pdf-parse@1.1.1 pdf-to-img@4 sharp@0.33.5 tesseract.js@5
 ```
 
-`sharp` and `pdf-to-img`'s canvas backend download small **prebuilt binaries**
-at install time (internet needed only here); at runtime nothing is fetched.
+> **Node version:** these pins work on Node **18.17+ / 20.3+**. The code also
+> supports pdf-parse v2's API, so if you prefer the newest libraries
+> (`pdf-parse@2`, `pdf-to-img@6`), upgrade Node to **22 LTS** (or ≥20.19) first —
+> otherwise you'll see `EBADENGINE` warnings and signature rasterisation can fail
+> at runtime. Either path works; the pinned versions above are the low-risk one.
+
+`sharp` and `pdf-to-img`'s backend download small **prebuilt binaries** at
+install time (internet needed only here); at runtime nothing is fetched.
 
 ## 2. Offline language data (required for a disconnected LAN)
 
