@@ -32,6 +32,16 @@
         <div class="alert alert-warn"><ul style="margin:0 0 0 18px;">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
     @endif
 
+    @php $fwdActive = \App\Http\Controllers\FormsController::forwardingActive($form); @endphp
+    @if ($fwdActive)
+        <div class="alert fwd-banner">
+            ↪ <strong>Email forwarding active</strong>
+            @if (!empty($form['forward_to'])) to <strong>{{ $form['forward_to'] }}</strong>@endif
+            @if (!empty($form['forward_until'])) until <strong>{{ \Illuminate\Support\Carbon::parse($form['forward_until'])->format('d M Y') }}</strong>@else (no end date)@endif.
+            When forwarding is turned off, tick <em>“Forwarding disabled”</em> below to clear this.
+        </div>
+    @endif
+
     {{-- Scans --}}
     <div class="card">
         <div class="card-body">
@@ -108,6 +118,28 @@
                     <label>Remarks</label>
                     <textarea class="textarea" name="remarks" rows="3">{{ old('remarks', $form['remarks']) }}</textarea>
                 </div>
+
+                {{-- Email forwarding (Form 10) --}}
+                <div class="section-label">Email forwarding</div>
+                <label class="check" style="margin-bottom:10px;">
+                    <input type="checkbox" name="email_forwarding" value="1" @checked(old('email_forwarding', $form['email_forwarding'] ?? 0))>
+                    Email is temporarily forwarded
+                </label>
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>Forward to</label>
+                        <input class="input" name="forward_to" value="{{ old('forward_to', $form['forward_to'] ?? '') }}" placeholder="user / address">
+                    </div>
+                    <div class="form-field">
+                        <label>Forward until</label>
+                        <input class="input" type="date" name="forward_until" value="{{ old('forward_until', ($form['forward_until'] ?? null) ? \Illuminate\Support\Carbon::parse($form['forward_until'])->format('Y-m-d') : '') }}">
+                    </div>
+                </div>
+                <label class="check" style="margin-top:10px;">
+                    <input type="checkbox" name="forwarding_done" value="1" @checked(old('forwarding_done', $form['forwarding_done'] ?? 0))>
+                    Forwarding disabled (clears the indicator)
+                </label>
+
                 <div style="margin-top:14px;">
                     <button type="submit" class="btn btn-primary">Save changes</button>
                 </div>
@@ -128,6 +160,13 @@
                         <tr><th>From</th><td>{{ $form['from_party'] ?: '—' }}</td></tr>
                         <tr><th>Company</th><td>{{ $form['company'] ?? '' ?: '—' }}</td></tr>
                         <tr><th>Status</th><td>{{ $form['status'] }}</td></tr>
+                        @if (!empty($form['email_forwarding']))
+                            <tr><th>Email forwarding</th><td>
+                                {{ !empty($form['forwarding_done']) ? 'Disabled' : 'Active' }}
+                                @if (!empty($form['forward_to'])) → {{ $form['forward_to'] }}@endif
+                                @if (!empty($form['forward_until'])) until {{ $fmt($form['forward_until']) }}@endif
+                            </td></tr>
+                        @endif
                         <tr><th>Remarks</th><td style="white-space:pre-wrap;">{{ $form['remarks'] ?: '—' }}</td></tr>
                     </table>
                 </div>

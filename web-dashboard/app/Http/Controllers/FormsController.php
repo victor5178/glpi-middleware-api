@@ -19,17 +19,48 @@ class FormsController extends Controller
     {
         $status = trim((string) $request->query('status', ''));
         $q = trim((string) $request->query('q', ''));
+        $forwarding = $request->query('forwarding') === '1';
 
         $result = $client->forms($status, $q);
+        $forms = $result['data'] ?? [];
+
+        // Count active email forwards (Form 10) and optionally filter to them.
+        $forwardingCount = collect($forms)->filter(fn ($f) => self::forwardingActive($f))->count();
+        if ($forwarding) {
+            $forms = array_values(array_filter($forms, fn ($f) => self::forwardingActive($f)));
+        }
 
         return view('forms.index', [
-            'forms'    => $result['data'] ?? [],
-            'counts'   => $result['counts'] ?? [],
-            'statuses' => self::STATUSES,
-            'status'   => $status,
-            'q'        => $q,
-            'error'    => $client->lastError,
+            'forms'           => $forms,
+            'counts'          => $result['counts'] ?? [],
+            'statuses'        => self::STATUSES,
+            'status'          => $status,
+            'q'               => $q,
+            'forwarding'      => $forwarding,
+            'forwardingCount' => $forwardingCount,
+            'error'           => $client->lastError,
         ]);
+    }
+
+    /**
+     * Is a temporary email forward still active on this form? True when
+     * forwarding is on, not marked done, and the "until" date hasn't passed
+     * (a missing date counts as open-ended). Auto-clears once the date passes.
+     */
+    public static function forwardingActive(array $form): bool
+    {
+        if (empty($form['email_forwarding']) || ! empty($form['forwarding_done'])) {
+            return false;
+        }
+        $until = $form['forward_until'] ?? null;
+        if (! $until) {
+            return true; // forwarding on, no end date set
+        }
+        try {
+            return \Illuminate\Support\Carbon::parse($until)->endOfDay()->isFuture();
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 
     public function create()
@@ -46,6 +77,9 @@ class FormsController extends Controller
             'from_party'    => 'nullable|string|max:200',
             'company'       => 'nullable|string|max:200',
             'remarks'       => 'nullable|string',
+            'email_forwarding' => 'nullable|boolean',
+            'forward_to'    => 'nullable|string|max:200',
+            'forward_until' => 'nullable|date',
             'images'        => 'required|array|min:1',
             'images.*'      => 'file|mimes:jpeg,jpg,png,gif,webp,bmp,pdf|max:51200', // 50 MB, matches middleware
         ], [
@@ -60,6 +94,9 @@ class FormsController extends Controller
             'from_party'    => $data['from_party'] ?? null,
             'company'       => $data['company'] ?? null,
             'remarks'       => $data['remarks'] ?? null,
+            'email_forwarding' => $request->boolean('email_forwarding') ? 1 : 0,
+            'forward_to'    => $data['forward_to'] ?? null,
+            'forward_until' => $data['forward_until'] ?? null,
             'created_by'    => session('glpi_user'),
         ];
         $fields = array_filter($fields, fn ($v) => $v !== null);
@@ -98,12 +135,22 @@ class FormsController extends Controller
             'remarks'       => 'nullable|string',
             'status'        => 'nullable|in:'.implode(',', self::STATUSES),
             'note'          => 'nullable|string|max:255',
+            'forward_to'    => 'nullable|string|max:200',
+            'forward_until' => 'nullable|date',
         ]);
 
         $data['form_type'] = $this->resolveFormType($request);
         $data['actor'] = session('glpi_user');
+        // Booleans are sent explicitly (unchecked box = 0), so they must always go.
+        $data['email_forwarding'] = $request->boolean('email_forwarding') ? 1 : 0;
+        $data['forwarding_done'] = $request->boolean('forwarding_done') ? 1 : 0;
 
-        $ok = $client->updateForm($id, array_filter($data, fn ($v) => $v !== null));
+        $payload = array_filter($data, fn ($v) => $v !== null);
+        // Keep the boolean fields even when 0 (array_filter drops 0/false-y).
+        $payload['email_forwarding'] = $data['email_forwarding'];
+        $payload['forwarding_done'] = $data['forwarding_done'];
+
+        $ok = $client->updateForm($id, $payload);
 
         if (! $ok) {
             return back()->withInput()->with('error', $client->lastError ?? 'Could not update the form.');

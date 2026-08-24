@@ -72,6 +72,28 @@
             </div>
         </div>
 
+        {{-- Email forwarding (Form 10: IT System Deactivation) --}}
+        <div class="card" style="margin-top:16px;">
+            <div class="card-body">
+                <div class="section-label" style="margin-top:0;">Email forwarding <span style="color:var(--muted);font-weight:400;font-size:.8rem;">(Form 10 — deactivation)</span></div>
+                <label class="check" style="margin-bottom:10px;">
+                    <input type="checkbox" name="email_forwarding" id="fwdOn" value="1" @checked(old('email_forwarding'))>
+                    This account’s email is temporarily forwarded
+                </label>
+                <div class="form-grid" id="fwdFields">
+                    <div class="form-field">
+                        <label>Forward to (user / address)</label>
+                        <input class="input" name="forward_to" value="{{ old('forward_to') }}" placeholder="e.g. supervisor@dailieng.com">
+                    </div>
+                    <div class="form-field">
+                        <label>Forward until</label>
+                        <input class="input" type="date" name="forward_until" value="{{ old('forward_until') }}">
+                    </div>
+                </div>
+                <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">While active, the form shows a “forwarding until …” indicator so it isn’t missed; it clears automatically after the date, or when you mark it disabled.</p>
+            </div>
+        </div>
+
         <div class="card" style="margin-top:16px;">
             <div class="card-body">
                 <div class="section-label" style="margin-top:0;">Scan / photos <span class="req">*</span></div>
@@ -110,6 +132,13 @@
             if (!sel || !other) return;
             function sync() { other.style.display = (sel.value === 'Other') ? '' : 'none'; }
             sel.addEventListener('change', sync); sync();
+        })();
+        // Dim the forwarding detail fields until forwarding is ticked.
+        (function () {
+            var on = document.getElementById('fwdOn'), box = document.getElementById('fwdFields');
+            if (!on || !box) return;
+            function sync() { box.style.opacity = on.checked ? '1' : '.5'; }
+            on.addEventListener('change', sync); sync();
         })();
     </script>
 

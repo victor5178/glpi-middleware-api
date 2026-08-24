@@ -36,11 +36,17 @@
             All <span class="count">{{ array_sum($counts) }}</span>
         </a>
         @foreach ($statuses as $s)
-            <a class="status-tab {{ $statusClass($s) }} @class(['active' => $status === $s])"
+            <a class="status-tab {{ $statusClass($s) }} @class(['active' => $status === $s && ! $forwarding])"
                href="{{ route('forms.index', ['status' => $s, 'q' => $q]) }}">
                 {{ $s }} <span class="count">{{ $counts[$s] ?? 0 }}</span>
             </a>
         @endforeach
+        @if ($forwardingCount > 0 || $forwarding)
+            <a class="status-tab fwd-tab @class(['active' => $forwarding])"
+               href="{{ route('forms.index', ['forwarding' => 1, 'q' => $q]) }}">
+                ↪ Forwarding active <span class="count">{{ $forwardingCount }}</span>
+            </a>
+        @endif
     </div>
 
     <form method="get" action="{{ route('forms.index') }}" class="filter" style="margin-bottom:16px;">
@@ -83,6 +89,9 @@
                         @if (!empty($form['form_type']))<span class="sub">{{ $form['form_type'] }}</span>@endif
                         @if (!empty($form['company']))<span class="sub">{{ $form['company'] }}</span>@endif
                         @if (!empty($form['from_party']))<span class="sub">From: {{ $form['from_party'] }}</span>@endif
+                        @if (\App\Http\Controllers\FormsController::forwardingActive($form))
+                            <span class="fwd-chip">↪ Fwd@if(!empty($form['forward_until'])) until {{ \Illuminate\Support\Carbon::parse($form['forward_until'])->format('d M') }}@endif</span>
+                        @endif
                         @if (!empty($form['has_signature']))<span class="sig-chip sig-yes">✓ signed</span>@endif
                         <span class="meta">
                             @if (!empty($form['received_date'])){{ \Illuminate\Support\Carbon::parse($form['received_date'])->format('d M Y') }} · @endif

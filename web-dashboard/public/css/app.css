@@ -438,3 +438,11 @@ a:hover { text-decoration: underline; }
 .sig-dot.ok   { background: #16a34a; }
 .sig-dot.miss { background: #f59e0b; }
 .sig-dot.na   { background: #cbd5e1; }
+
+/* ---- Forms: email forwarding indicator ---- */
+.fwd-chip { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px; font-size: .7rem;
+    font-weight: 600; background: #ede9fe; color: #6d28d9; vertical-align: middle; white-space: nowrap; }
+.fwd-banner { background: #f5f3ff; border: 1px solid #ddd6fe; color: #5b21b6; }
+.status-tab.fwd-tab { border-color: #c4b5fd; color: #6d28d9; }
+.status-tab.fwd-tab.active { box-shadow: 0 0 0 1px #7c3aed inset; border-color: #7c3aed; }
+.status-tab.fwd-tab .count { background: #ede9fe; color: #6d28d9; }
