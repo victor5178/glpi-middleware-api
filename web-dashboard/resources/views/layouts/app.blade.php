@@ -54,6 +54,9 @@
                 <a class="side-link @class(['active' => request()->routeIs('scan')])" href="{{ route('scan') }}">Scan</a>
                 <a class="side-link primary @class(['active' => request()->routeIs('manual.*')])" href="{{ route('manual.create') }}">+ Manual entry</a>
             @endperm
+            @perm('forms','view')
+                <a class="side-link @class(['active' => request()->routeIs('forms.*')])" href="{{ route('forms.index') }}">Forms (OCR)</a>
+            @endperm
             @perm('admin')
                 <a class="side-link @class(['active' => request()->routeIs('access.*')])" href="{{ route('access.index') }}">User Access</a>
             @endperm

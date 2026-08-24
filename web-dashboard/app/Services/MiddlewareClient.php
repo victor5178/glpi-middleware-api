@@ -211,6 +211,63 @@ class MiddlewareClient
         }
     }
 
+    // ---- Forms OCR tracking ----
+
+    /** List forms; returns ['data'=>[...], 'counts'=>[status=>n], 'statuses'=>[...]]. */
+    public function forms(string $status = '', string $q = ''): array
+    {
+        return $this->getJson('/api/forms', array_filter(['status' => $status, 'q' => $q], fn ($v) => $v !== ''))
+            ?? ['data' => [], 'counts' => [], 'statuses' => []];
+    }
+
+    /** Single form with images + history. */
+    public function form(int $id): ?array
+    {
+        return $this->getJson('/api/forms/'.$id);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function formHistory(int $id): array
+    {
+        return $this->getData('/api/forms/'.$id.'/history', [], 'data');
+    }
+
+    /**
+     * Create a form from uploaded image files (SplFileInfo/UploadedFile[]).
+     * Returns the new form id or null.
+     */
+    public function createForm(array $fields, array $files): ?int
+    {
+        try {
+            $req = Http::timeout(max($this->timeout, 60));
+            foreach ($files as $f) {
+                if ($f && method_exists($f, 'getRealPath') && $f->isValid()) {
+                    $req = $req->attach('images[]', file_get_contents($f->getRealPath()), $f->getClientOriginalName());
+                }
+            }
+            $resp = $req->post($this->baseUrl.'/api/forms', $fields);
+            if (! $resp->successful()) {
+                $this->lastError = $resp->json('message') ?? "Upload failed (HTTP {$resp->status()}).";
+                return null;
+            }
+            $id = $resp->json('id');
+            return $id !== null ? (int) $id : null;
+        } catch (\Throwable $e) {
+            $this->lastError = "Could not reach the middleware ({$e->getMessage()}).";
+            return null;
+        }
+    }
+
+    public function updateForm(int $id, array $payload): bool
+    {
+        return $this->send('put', '/api/forms/'.$id, $payload);
+    }
+
+    public function deleteForm(int $id, ?string $actor = null): bool
+    {
+        return $this->send('delete', '/api/forms/'.$id, array_filter(['actor' => $actor]));
+    }
+
     // ---- RBAC ----
 
     /** Effective permissions for a username: ['role_name','is_admin','permissions'=>[...]]. */

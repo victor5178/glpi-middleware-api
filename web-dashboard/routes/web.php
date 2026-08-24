@@ -6,6 +6,7 @@ use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscrepancyController;
+use App\Http\Controllers\FormsController;
 use App\Http\Controllers\ManualController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ReportController;
@@ -58,6 +59,14 @@ Route::middleware('auth.glpi')->group(function () {
     Route::delete('/audit/{auditId}/result/{resultId}', [DashboardController::class, 'destroy'])
         ->whereNumber('auditId')->whereNumber('resultId')
         ->middleware('perm:audit_records,delete')->name('scanned.destroy');
+
+    // --- Forms OCR tracking (RBAC: forms) ---
+    Route::get('/forms', [FormsController::class, 'index'])->middleware('perm:forms,view')->name('forms.index');
+    Route::get('/forms/create', [FormsController::class, 'create'])->middleware('perm:forms,execute')->name('forms.create');
+    Route::post('/forms', [FormsController::class, 'store'])->middleware('perm:forms,execute')->name('forms.store');
+    Route::get('/forms/{id}', [FormsController::class, 'show'])->whereNumber('id')->middleware('perm:forms,view')->name('forms.show');
+    Route::put('/forms/{id}', [FormsController::class, 'update'])->whereNumber('id')->middleware('perm:forms,edit')->name('forms.update');
+    Route::delete('/forms/{id}', [FormsController::class, 'destroy'])->whereNumber('id')->middleware('perm:forms,delete')->name('forms.destroy');
 
     // --- User Access administration (Administrator only) ---
     Route::middleware('perm:admin')->group(function () {
