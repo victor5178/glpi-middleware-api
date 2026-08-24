@@ -69,12 +69,20 @@
             preview.innerHTML = '';
             for (var i = 0; i < dt.files.length; i++) {
                 (function (idx) {
-                    var url = URL.createObjectURL(dt.files[idx]);
+                    var file = dt.files[idx];
                     var cell = document.createElement('label'); cell.className = 'edit-photo';
                     var zoom = document.createElement('span'); zoom.className = 'zoom-wrap';
-                    var im = document.createElement('img'); im.src = url;
-                    im.onload = function () { URL.revokeObjectURL(url); };
-                    zoom.appendChild(im);
+                    if (file.type && file.type.indexOf('image/') === 0) {
+                        var url = URL.createObjectURL(file);
+                        var im = document.createElement('img'); im.src = url;
+                        im.onload = function () { URL.revokeObjectURL(url); };
+                        zoom.appendChild(im);
+                    } else {
+                        // Non-image (e.g. PDF): show a file chip, not a broken image.
+                        var chip = document.createElement('span'); chip.className = 'file-chip';
+                        chip.textContent = '📄 ' + (file.name || 'PDF');
+                        zoom.appendChild(chip);
+                    }
                     var rm = document.createElement('span'); rm.className = 'edit-photo-remove';
                     rm.textContent = '✕ Remove';
                     rm.addEventListener('click', function (e) { e.preventDefault(); removeAt(idx); });

@@ -38,9 +38,20 @@
             @if (! empty($form['images']))
                 <div class="edit-photos">
                     @foreach ($form['images'] as $img)
-                        <span class="zoom-wrap">
-                            <img src="{{ url('media/'.ltrim($img['img_dir'], '/')) }}" alt="Form scan" loading="lazy">
-                        </span>
+                        @php
+                            $src = url('media/'.ltrim($img['img_dir'], '/'));
+                            $isPdf = \Illuminate\Support\Str::endsWith(strtolower($img['img_dir']), '.pdf');
+                        @endphp
+                        @if ($isPdf)
+                            <a class="pdf-tile" href="{{ $src }}" target="_blank" rel="noopener">
+                                <span class="pdf-ico">📄</span>
+                                <span>Open PDF</span>
+                            </a>
+                        @else
+                            <span class="zoom-wrap">
+                                <img src="{{ $src }}" alt="Form scan" loading="lazy">
+                            </span>
+                        @endif
                     @endforeach
                 </div>
             @else

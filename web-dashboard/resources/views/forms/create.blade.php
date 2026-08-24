@@ -67,10 +67,10 @@
                     </label>
                     <label class="btn btn-ghost" style="cursor:pointer;">
                         Choose files
-                        <input type="file" name="images[]" id="photoInput" accept="image/*" multiple hidden>
+                        <input type="file" name="images[]" id="photoInput" accept="image/*,application/pdf" multiple hidden>
                     </label>
                 </div>
-                <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">Photos are compressed automatically before upload. Add multiple pages if the form has them.</p>
+                <p style="color:var(--muted);font-size:.82rem;margin:8px 0 0;">Images or PDF files are accepted. Photos are compressed automatically; add multiple pages if the form has them. (Text extraction (OCR) reads images — for a PDF, upload it plus a photo of the page if you want the text searchable.)</p>
                 <div id="photoPreview" class="edit-photos" style="margin-top:12px;"></div>
             </div>
         </div>

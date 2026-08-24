@@ -8,9 +8,12 @@
         'Completed' => 'status-completed',
         default     => 'status-pending',
     };
-    $firstImage = function ($form) {
+    // Returns [url, isPdf] for the first attachment, or [null, false].
+    $firstAttachment = function ($form) {
         $imgs = array_filter(explode('||', (string) ($form['images'] ?? '')));
-        return $imgs ? url('media/'.ltrim($imgs[0], '/')) : null;
+        if (! $imgs) return [null, false];
+        $first = $imgs[0];
+        return [url('media/'.ltrim($first, '/')), \Illuminate\Support\Str::endsWith(strtolower($first), '.pdf')];
     };
 @endphp
 
@@ -59,10 +62,12 @@
     @else
         <div class="grid">
             @foreach ($forms as $form)
-                @php $thumb = $firstImage($form); @endphp
+                @php [$thumb, $thumbIsPdf] = $firstAttachment($form); @endphp
                 <a class="asset" href="{{ route('forms.show', ['id' => $form['id']]) }}">
                     <div class="thumb-wrap">
-                        @if ($thumb)
+                        @if ($thumb && $thumbIsPdf)
+                            <div class="thumb-empty thumb-pdf">📄 PDF</div>
+                        @elseif ($thumb)
                             <img loading="lazy" src="{{ $thumb }}" alt="Form scan"
                                  onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
                             <div class="thumb-empty" style="display:none;">Scan unavailable</div>

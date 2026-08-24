@@ -46,9 +46,10 @@ class FormsController extends Controller
             'from_party'    => 'nullable|string|max:200',
             'remarks'       => 'nullable|string',
             'images'        => 'required|array|min:1',
-            'images.*'      => 'image|max:51200', // 50 MB, matches middleware
+            'images.*'      => 'file|mimes:jpeg,jpg,png,gif,webp,bmp,pdf|max:51200', // 50 MB, matches middleware
         ], [
-            'images.required' => 'Attach at least one scan or photo of the form.',
+            'images.required' => 'Attach at least one scan, photo or PDF of the form.',
+            'images.*.mimes'  => 'Each file must be an image (JPG, PNG, GIF, WebP, BMP) or a PDF.',
         ]);
 
         $fields = [
