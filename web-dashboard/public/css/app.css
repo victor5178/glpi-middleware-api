@@ -382,3 +382,10 @@ a:hover { text-decoration: underline; }
     .select { min-width: 0; width: 100%; }
     .field { width: 100%; }
 }
+
+/* ---- User Access (RBAC) permission grid ---- */
+.perm-grid { border-collapse: collapse; width: 100%; min-width: 420px; font-size: .88rem; }
+.perm-grid th, .perm-grid td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+.perm-grid thead th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .02em; }
+.perm-grid tbody td:first-child, .perm-grid thead th:first-child { text-align: left; font-weight: 500; }
+.perm-grid input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; }

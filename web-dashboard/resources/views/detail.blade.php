@@ -47,7 +47,7 @@
             {{ $item['asset_tag'] ?? 'Asset #'.($item['asset_id'] ?? '?') }}
             <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
         </h1>
-        <a class="btn btn-primary" href="{{ route('scanned.edit', ['auditId' => $auditId, 'resultId' => $resultId]) }}">Edit</a>
+        @perm('audit_records','edit')<a class="btn btn-primary" href="{{ route('scanned.edit', ['auditId' => $auditId, 'resultId' => $resultId]) }}">Edit</a>@endperm
     </div>
 
     <div class="detail-grid">

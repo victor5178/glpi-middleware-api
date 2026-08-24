@@ -151,6 +151,7 @@
     </form>
 
     {{-- Delete this record (archived to the Audit Trail) --}}
+    @perm('audit_records','delete')
     <form method="post" action="{{ route('scanned.destroy', ['auditId' => $auditId, 'resultId' => $resultId]) }}"
           onsubmit="return confirm('Delete this record? It will be archived in the Audit Trail and can be reviewed there.');"
           style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line);">
@@ -159,6 +160,7 @@
         <button type="submit" class="btn" style="background:var(--danger,#b91c1c);color:#fff;">Delete record</button>
         <span style="color:var(--muted);font-size:.82rem;margin-left:8px;">Removes this scanned result; a full snapshot is kept in the Audit Trail.</span>
     </form>
+    @endperm
 
     {{-- Camera capture + client-side compression + removable previews for new photos --}}
     <script src="/js/photo-input.js"></script>

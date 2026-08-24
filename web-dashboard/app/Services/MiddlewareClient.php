@@ -211,6 +211,67 @@ class MiddlewareClient
         }
     }
 
+    // ---- RBAC ----
+
+    /** Effective permissions for a username: ['role_name','is_admin','permissions'=>[...]]. */
+    public function resolvePermissions(string $username): ?array
+    {
+        return $this->getJson('/api/rbac/resolve/'.rawurlencode($username));
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function rbacRoles(): array
+    {
+        return $this->getData('/api/rbac/roles', [], 'data');
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function rbacUserRoles(): array
+    {
+        return $this->getData('/api/rbac/user-roles', [], 'data');
+    }
+
+    public function saveRbacRole(array $payload): bool
+    {
+        return $this->send('post', '/api/rbac/roles', $payload);
+    }
+
+    public function updateRbacRole(int $id, array $payload): bool
+    {
+        return $this->send('put', '/api/rbac/roles/'.$id, $payload);
+    }
+
+    public function deleteRbacRole(int $id): bool
+    {
+        return $this->send('delete', '/api/rbac/roles/'.$id);
+    }
+
+    public function assignRbacUser(string $username, int $roleId): bool
+    {
+        return $this->send('put', '/api/rbac/user-roles', ['username' => $username, 'role_id' => $roleId]);
+    }
+
+    public function removeRbacUser(string $username): bool
+    {
+        return $this->send('delete', '/api/rbac/user-roles/'.rawurlencode($username));
+    }
+
+    /** Small JSON request helper (post/put/delete) that records lastError. */
+    protected function send(string $method, string $path, array $payload = []): bool
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()->{$method}($this->baseUrl.$path, $payload);
+            if (! $resp->successful()) {
+                $this->lastError = $resp->json('message') ?? "Middleware returned HTTP {$resp->status()} for {$path}.";
+                return false;
+            }
+            return true;
+        } catch (\Throwable $e) {
+            $this->lastError = "Could not reach the middleware at {$this->baseUrl} ({$e->getMessage()}).";
+            return false;
+        }
+    }
+
     /**
      * GET a JSON endpoint and pull a nested key (e.g. paginated "data").
      *

@@ -24,8 +24,10 @@
                 ITD Dashboard
             </a>
             <nav class="top-actions">
-                <a class="nav-link" href="{{ route('scan') }}">Scan</a>
-                <a class="nav-link primary" href="{{ route('manual.create') }}">+ Manual entry</a>
+                @perm('audit_records','execute')
+                    <a class="nav-link" href="{{ route('scan') }}">Scan</a>
+                    <a class="nav-link primary" href="{{ route('manual.create') }}">+ Manual entry</a>
+                @endperm
             </nav>
             @if (session('glpi_user'))
                 <span class="nav-user topbar-user">{{ session('glpi_user') }}</span>
@@ -41,13 +43,20 @@
             <label for="navToggle" class="sidebar-close" role="button" tabindex="0" aria-label="Close menu">✕</label>
         </div>
         <nav class="sidebar-nav">
-            <a class="side-link @class(['active' => request()->routeIs('dashboard', 'scanned.*')])" href="{{ route('dashboard') }}">Dashboard</a>
-            <a class="side-link @class(['active' => request()->routeIs('asset-review')])" href="{{ route('asset-review') }}">Asset Review</a>
-            <a class="side-link @class(['active' => request()->routeIs('discrepancy')])" href="{{ route('discrepancy') }}">Discrepancy Review</a>
-            <a class="side-link @class(['active' => request()->routeIs('audit-trail')])" href="{{ route('audit-trail') }}">Audit Trail</a>
-            <a class="side-link @class(['active' => request()->routeIs('report')])" href="{{ route('report') }}">Report</a>
-            <a class="side-link @class(['active' => request()->routeIs('scan')])" href="{{ route('scan') }}">Scan</a>
-            <a class="side-link primary @class(['active' => request()->routeIs('manual.*')])" href="{{ route('manual.create') }}">+ Manual entry</a>
+            @perm('audit_records','view')
+                <a class="side-link @class(['active' => request()->routeIs('dashboard', 'scanned.*')])" href="{{ route('dashboard') }}">Dashboard</a>
+                <a class="side-link @class(['active' => request()->routeIs('asset-review')])" href="{{ route('asset-review') }}">Asset Review</a>
+                <a class="side-link @class(['active' => request()->routeIs('discrepancy')])" href="{{ route('discrepancy') }}">Discrepancy Review</a>
+                <a class="side-link @class(['active' => request()->routeIs('audit-trail')])" href="{{ route('audit-trail') }}">Audit Trail</a>
+                <a class="side-link @class(['active' => request()->routeIs('report')])" href="{{ route('report') }}">Report</a>
+            @endperm
+            @perm('audit_records','execute')
+                <a class="side-link @class(['active' => request()->routeIs('scan')])" href="{{ route('scan') }}">Scan</a>
+                <a class="side-link primary @class(['active' => request()->routeIs('manual.*')])" href="{{ route('manual.create') }}">+ Manual entry</a>
+            @endperm
+            @perm('admin')
+                <a class="side-link @class(['active' => request()->routeIs('access.*')])" href="{{ route('access.index') }}">User Access</a>
+            @endperm
         </nav>
         @if (session('glpi_user'))
             <div class="sidebar-foot">
