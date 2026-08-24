@@ -298,14 +298,24 @@ to the Audit Trail).
 ### Enable offline OCR (Tesseract in the middleware)
 
 The middleware degrades gracefully — forms **still upload and track without OCR**;
-follow this to turn on automatic text extraction. It runs entirely on the LAN.
+follow this to turn on automatic text extraction, PDF parsing and signature
+detection. It all runs entirely on the LAN.
 
 On the **middleware** host (where `server.js` lives, inside the
 `glpi-middleware-api` repo), from the folder containing `package.json`:
 
 ```bash
-npm install tesseract.js      # one-time; needs internet during install only
+npm install tesseract.js pdf-parse pdf-to-img sharp   # one-time; internet during install only
 ```
+
+- `tesseract.js` — OCR for images / scanned PDFs
+- `pdf-parse` — text from native/digital PDFs (skips OCR)
+- `pdf-to-img` — rasterises scanned PDFs so they can be OCR'd
+- `sharp` — crops the signature region and measures ink density
+
+Signature detection is template-aware: **Form 1** looks for the *ITS Staff
+signature* in the "Job Complete Acknowledge" section and flags a warning if a form
+is Completed without it (warn-only — it never blocks).
 
 Then bundle the English language data so it works **offline** (the default fetch
 is from a CDN and fails on a disconnected LAN):
