@@ -1,0 +1,8 @@
+# User-uploaded photos (audit + forms). Lives OUTSIDE node_modules so npm
+# reinstalls can't wipe it. NEVER commit this — it's runtime data, and it must
+# be backed up separately (see deploy/BACKUP.md).
+/data/
+
+# Runtime files written by start.sh
+/middleware.pid
+/middleware.log
