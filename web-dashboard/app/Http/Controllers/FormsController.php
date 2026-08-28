@@ -180,6 +180,20 @@ class FormsController extends Controller
             : back()->with('error', $client->lastError ?? 'Could not reprocess the form.');
     }
 
+    /** Add a timestamped IT note to a form. */
+    public function addNote(Request $request, int $id, MiddlewareClient $client)
+    {
+        $data = $request->validate([
+            'note' => 'required|string|max:5000',
+        ]);
+
+        $ok = $client->addFormNote($id, trim($data['note']), session('glpi_user'));
+
+        return $ok
+            ? redirect()->route('forms.show', ['id' => $id])->with('success', 'Note added.')->withFragment('notes')
+            : back()->withInput()->with('error', $client->lastError ?? 'Could not add the note.');
+    }
+
     public function destroy(int $id, MiddlewareClient $client)
     {
         $ok = $client->deleteForm($id, session('glpi_user'));

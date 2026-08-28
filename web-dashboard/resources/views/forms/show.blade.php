@@ -255,6 +255,39 @@
         </div>
     </div>
 
+    {{-- Notes (IT can append; each note is timestamped) --}}
+    <div class="card" style="margin-top:16px;" id="notes">
+        <div class="card-body">
+            <div class="section-label" style="margin-top:0;">Notes</div>
+
+            @perm('forms','edit')
+                <form method="post" action="{{ route('forms.note', ['id' => $form['id']]) }}" style="margin-bottom:14px;">
+                    @csrf
+                    <textarea class="textarea" name="note" rows="3" placeholder="Add a note…" required>{{ old('note') }}</textarea>
+                    <div style="margin-top:8px;">
+                        <button type="submit" class="btn btn-primary">Add note</button>
+                    </div>
+                </form>
+            @endperm
+
+            @if (! empty($form['notes']))
+                <ul class="note-list">
+                    @foreach ($form['notes'] as $n)
+                        <li class="note-item">
+                            <div class="note-body">{{ $n['note'] }}</div>
+                            <div class="note-meta">
+                                {{ $n['author'] ?: 'Unknown' }}
+                                · {{ $fmt($n['created_at'], 'd M Y H:i') }}
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p style="color:var(--muted);margin:0;">No notes yet.</p>
+            @endif
+        </div>
+    </div>
+
     {{-- Delete --}}
     @perm('forms','delete')
         <form method="post" action="{{ route('forms.destroy', ['id' => $form['id']]) }}"

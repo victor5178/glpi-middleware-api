@@ -446,3 +446,9 @@ a:hover { text-decoration: underline; }
 .status-tab.fwd-tab { border-color: #c4b5fd; color: #6d28d9; }
 .status-tab.fwd-tab.active { box-shadow: 0 0 0 1px #7c3aed inset; border-color: #7c3aed; }
 .status-tab.fwd-tab .count { background: #ede9fe; color: #6d28d9; }
+
+/* ---- Forms: IT notes log ---- */
+.note-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.note-item { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fbfcfe; }
+.note-body { white-space: pre-wrap; word-break: break-word; }
+.note-meta { color: var(--muted); font-size: .78rem; margin-top: 6px; }

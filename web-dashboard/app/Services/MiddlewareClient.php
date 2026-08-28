@@ -263,6 +263,15 @@ class MiddlewareClient
         }
     }
 
+    /** Add a timestamped IT note to a form. */
+    public function addFormNote(int $id, string $note, ?string $author = null): bool
+    {
+        return $this->send('post', '/api/forms/'.$id.'/notes', array_filter([
+            'note' => $note,
+            'author' => $author,
+        ], fn ($v) => $v !== null && $v !== ''));
+    }
+
     public function updateForm(int $id, array $payload): bool
     {
         return $this->send('put', '/api/forms/'.$id, $payload);
