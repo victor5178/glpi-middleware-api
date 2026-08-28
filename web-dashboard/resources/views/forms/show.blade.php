@@ -163,7 +163,7 @@
                         <tr><th>From</th><td>{{ $form['from_party'] ?: '—' }}</td></tr>
                         <tr><th>Company</th><td>{{ $form['company'] ?? '' ?: '—' }}</td></tr>
                         <tr><th>Status</th><td>{{ $form['status'] }}</td></tr>
-                        @if (!empty($form['email_forwarding']))
+                        @if ($isForm10 && !empty($form['email_forwarding']))
                             <tr><th>Email forwarding</th><td>
                                 {{ !empty($form['forwarding_done']) ? 'Disabled' : 'Active' }}
                                 @if (!empty($form['forward_to'])) → {{ $form['forward_to'] }}@endif

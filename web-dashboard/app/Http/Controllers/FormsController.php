@@ -49,6 +49,11 @@ class FormsController extends Controller
      */
     public static function forwardingActive(array $form): bool
     {
+        // Forwarding only applies to Form 10 — never show the indicator on any
+        // other form, even if a stale email_forwarding flag is stored.
+        if (! \Illuminate\Support\Str::contains((string) ($form['form_type'] ?? ''), 'Form 10')) {
+            return false;
+        }
         if (empty($form['email_forwarding']) || ! empty($form['forwarding_done'])) {
             return false;
         }
