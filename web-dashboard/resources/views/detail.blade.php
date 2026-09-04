@@ -8,7 +8,9 @@
         $resultId = (int) ($item['audit_result_id'] ?? 0);
         $found = (int) ($item['asset_found'] ?? 0) === 1;
         $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
-        $checkedAt = \Illuminate\Support\Str::of((string) ($item['checked_at'] ?? ''))->replace('T', ' ')->limit(19, '');
+        $checkedAt = ! empty($item['checked_at'])
+            ? \Illuminate\Support\Carbon::parse($item['checked_at'], 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
+            : '';
 
         $yesNo = function ($v) {
             return match ((int) $v) {
@@ -17,18 +19,22 @@
                 default => ['—', 'pill-muted'],
             };
         };
-        $checks = [
-            'Asset physically found' => $item['asset_found'] ?? null,
-            'Physical condition good' => $item['is_physical_good'] ?? null,
-            'OS patches up to date' => $item['is_patch_latest'] ?? null,
-            'Endpoint protection up to date' => $item['is_endpoint_latest'] ?? null,
-            'Monitor working' => $item['is_monitor_working'] ?? null,
-            'UPS working' => $item['is_ups_working'] ?? null,
-        ];
+        // Show the checklist relevant to this asset's category, plus the found status.
+        $catKey = strtolower(trim((string) ($item['category'] ?? '')));
+        $cfg = config('checklist') ?? [];
+        $catFields = $cfg['by_category'][$catKey] ?? $cfg['default'] ?? ['is_physical_good' => 'Physical in Good Condition'];
+        $fields = ['asset_found' => 'Asset found on site'] + $catFields;
+        $checks = [];
+        foreach ($fields as $field => $label) {
+            $checks[$label] = $item[$field] ?? null;
+        }
     @endphp
 
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-warn">{{ session('error') }}</div>
     @endif
 
     <a class="back-link" href="{{ route('dashboard', ['audit_id' => $auditId]) }}">
@@ -36,11 +42,12 @@
         Back to dashboard
     </a>
 
-    <div class="page-head">
+    <div class="page-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <h1 class="page-title">
             {{ $item['asset_tag'] ?? 'Asset #'.($item['asset_id'] ?? '?') }}
             <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
         </h1>
+        @perm('audit_records','edit')<a class="btn btn-primary" href="{{ route('scanned.edit', ['auditId' => $auditId, 'resultId' => $resultId]) }}">Edit</a>@endperm
     </div>
 
     <div class="detail-grid">
@@ -49,14 +56,14 @@
             <div class="card-body">
                 @if (! empty($images))
                     <div class="photo-frame">
-                        <img id="mainPhoto" src="{{ $images[0] }}"
+                        <img id="mainPhoto" src="{{ url('media/'.ltrim($images[0], '/')) }}"
                              alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}">
                     </div>
 
                     @if (count($images) > 1)
                         <div class="thumbs">
-                            @foreach ($images as $i => $url)
-                                <img class="thumb-sm {{ $i === 0 ? 'active' : '' }}" src="{{ $url }}"
+                            @foreach ($images as $i => $imgPath)
+                                <img class="thumb-sm {{ $i === 0 ? 'active' : '' }}" src="{{ url('media/'.ltrim($imgPath, '/')) }}"
                                      alt="Photo {{ $i + 1 }}"
                                      onclick="document.getElementById('mainPhoto').src=this.src;document.querySelectorAll('.thumb-sm').forEach(function(t){t.classList.remove('active');});this.classList.add('active');">
                             @endforeach
@@ -77,9 +84,10 @@
                     <table class="kv">
                         <tr><th>Serial</th><td>{{ $item['serial_number'] ?? '—' }}</td></tr>
                         <tr><th>Model</th><td>{{ $item['model'] ?? '—' }}</td></tr>
+                        <tr><th>FA tagging</th><td>{{ $item['fa_tagging'] ?: '—' }}</td></tr>
                         <tr><th>Assigned user</th><td>{{ $item['assigned_user'] ?? '—' }}</td></tr>
                         <tr><th>Actual user</th><td>{{ $item['actual_user'] ?: '—' }}</td></tr>
-                        <tr><th>Location id</th><td>{{ $item['actual_location_id'] ?? '—' }}</td></tr>
+                        <tr><th>Location</th><td>{{ $locationLabel ?? ('id '.($item['actual_location_id'] ?? '—')) }}</td></tr>
                         <tr><th>Checked by</th><td>{{ $item['checked_by'] ?: '—' }}</td></tr>
                         <tr><th>Checked at</th><td>{{ $checkedAt ?: '—' }}</td></tr>
                     </table>
@@ -97,7 +105,7 @@
                     </ul>
 
                     <div class="section-label">Notes</div>
-                    <p style="margin:0;">{{ $item['additional_info'] ?: '—' }}</p>
+                    <p style="margin:0;white-space:pre-wrap;">{{ $item['additional_info'] ?: '—' }}</p>
                 </div>
             </div>
         </div>

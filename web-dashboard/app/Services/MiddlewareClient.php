@@ -19,6 +19,9 @@ class MiddlewareClient
     /** Human-readable message describing the most recent failure, if any. */
     public ?string $lastError = null;
 
+    /** Non-fatal warning returned by the last successful write (e.g. missing signature). */
+    public ?string $lastWarning = null;
+
     public function __construct()
     {
         $this->baseUrl = rtrim((string) config('services.middleware.base_url'), '/');
@@ -51,8 +54,36 @@ class MiddlewareClient
     /** Look up a single asset by its asset_tag (returns null if not found). */
     public function getAsset(string $assetTag): ?array
     {
-        $json = $this->getJson('/api/assets/'.rawurlencode($assetTag));
+        // Look up by query string, not a path segment: asset tags can contain
+        // slashes/spaces (e.g. "PE/MYY-HQ/CHW/0009 (A)") which break URL paths.
+        $json = $this->getJson('/api/assets', ['asset_tag' => $assetTag]);
         return is_array($json) ? $json : null;
+    }
+
+    /**
+     * Create or update an asset in the middleware inventory (non-destructive
+     * upsert). Used when submitting an audit for an asset found in GLPI that
+     * may not yet exist locally — mirrors the Android scan → submit flow.
+     * Returns the asset's internal id, or null on failure.
+     */
+    public function upsertAsset(array $payload): ?int
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->post($this->baseUrl.'/api/assets', $payload);
+            if (! $resp->successful()) {
+                $body = $resp->json();
+                $this->lastError = is_array($body) && isset($body['message'])
+                    ? $body['message']
+                    : "Middleware returned HTTP {$resp->status()} for /api/assets.";
+                return null;
+            }
+            $id = $resp->json('id');
+            return $id !== null ? (int) $id : null;
+        } catch (\Throwable $e) {
+            $this->lastError = "Could not reach the middleware at {$this->baseUrl} ({$e->getMessage()}).";
+            return null;
+        }
     }
 
     /**
@@ -63,6 +94,21 @@ class MiddlewareClient
         try {
             $resp = Http::timeout($this->timeout)->acceptJson()
                 ->post($this->baseUrl.'/api/audit/submit', $payload);
+            return ['ok' => $resp->successful(), 'status' => $resp->status(), 'body' => $resp->json() ?? []];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'status' => 0, 'body' => ['message' => $e->getMessage()]];
+        }
+    }
+
+    /**
+     * Edit an existing audit result (e.g. correct its location). Only the keys
+     * present in $payload are changed. Returns ['ok'=>bool,'status'=>int,'body'=>array].
+     */
+    public function updateResult(int $resultId, array $payload): array
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->put($this->baseUrl.'/api/audit/result/'.$resultId, $payload);
             return ['ok' => $resp->successful(), 'status' => $resp->status(), 'body' => $resp->json() ?? []];
         } catch (\Throwable $e) {
             return ['ok' => false, 'status' => 0, 'body' => ['message' => $e->getMessage()]];
@@ -106,10 +152,203 @@ class MiddlewareClient
             return [];
         }
 
+        // Return middleware-relative paths (e.g. "uploads/2026.../f.jpg"); the
+        // views turn these into the same-origin /media proxy URL.
         return array_values(array_filter(array_map(
-            fn ($img) => isset($img['url']) ? $this->baseUrl.$img['url'] : null,
+            fn ($img) => $img['path'] ?? null,
             $json['images']
         )));
+    }
+
+    /**
+     * Like {@see resultImages()} but keeps each photo's server-side path (needed
+     * to delete it) alongside its browser URL.
+     *
+     * @return array<int, array{path:string, url:string}>
+     */
+    public function resultImageList(int $auditResultId): array
+    {
+        $json = $this->getJson("/api/audit/result/{$auditResultId}/images");
+        if ($json === null || ! is_array($json['images'] ?? null)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(function ($img) {
+            $p = (string) ($img['path'] ?? '');
+            return $p !== '' ? ['path' => $p] : null;
+        }, $json['images'])));
+    }
+
+    /** @return array<int, array<string, mixed>> Audit-trail entries (newest first). */
+    public function auditTrail(array $filters = []): array
+    {
+        return $this->getData('/api/audit-trail', array_merge(['limit' => 300], $filters), 'data');
+    }
+
+    /** Delete a whole scanned audit result (archived server-side). */
+    public function deleteResult(int $auditResultId, ?string $actor = null): array
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->delete($this->baseUrl.'/api/audit/result/'.$auditResultId, array_filter(['actor' => $actor]));
+            return ['ok' => $resp->successful(), 'status' => $resp->status(), 'body' => $resp->json() ?? []];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'status' => 0, 'body' => ['message' => $e->getMessage()]];
+        }
+    }
+
+    /** Delete one photo (file + DB rows) from an audit result. */
+    public function deleteImage(int $auditResultId, string $path, ?string $actor = null): bool
+    {
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()
+                ->delete($this->baseUrl.'/api/audit/result/'.$auditResultId.'/image', array_filter(['path' => $path, 'actor' => $actor]));
+            if (! $resp->successful()) {
+                $this->lastError = $resp->json('message') ?? "Delete failed (HTTP {$resp->status()}).";
+                return false;
+            }
+            return true;
+        } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
+            return false;
+        }
+    }
+
+    // ---- Forms OCR tracking ----
+
+    /** List forms; returns ['data'=>[...], 'counts'=>[status=>n], 'statuses'=>[...]]. */
+    public function forms(string $status = '', string $q = ''): array
+    {
+        return $this->getJson('/api/forms', array_filter(['status' => $status, 'q' => $q], fn ($v) => $v !== ''))
+            ?? ['data' => [], 'counts' => [], 'statuses' => []];
+    }
+
+    /** Single form with images + history. */
+    public function form(int $id): ?array
+    {
+        return $this->getJson('/api/forms/'.$id);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function formHistory(int $id): array
+    {
+        return $this->getData('/api/forms/'.$id.'/history', [], 'data');
+    }
+
+    /**
+     * Create a form from uploaded image files (SplFileInfo/UploadedFile[]).
+     * Returns the new form id or null.
+     */
+    public function createForm(array $fields, array $files): ?int
+    {
+        try {
+            $req = Http::timeout(max($this->timeout, 60));
+            foreach ($files as $f) {
+                if ($f && method_exists($f, 'getRealPath') && $f->isValid()) {
+                    // Field name must be 'images' (not 'images[]') to match the
+                    // middleware's multer .array('images') — repeated for each file.
+                    $req = $req->attach('images', file_get_contents($f->getRealPath()), $f->getClientOriginalName());
+                }
+            }
+            $resp = $req->post($this->baseUrl.'/api/forms', $fields);
+            if (! $resp->successful()) {
+                $this->lastError = $resp->json('message') ?? "Upload failed (HTTP {$resp->status()}).";
+                return null;
+            }
+            $id = $resp->json('id');
+            return $id !== null ? (int) $id : null;
+        } catch (\Throwable $e) {
+            $this->lastError = "Could not reach the middleware ({$e->getMessage()}).";
+            return null;
+        }
+    }
+
+    /** Add a timestamped IT note to a form. */
+    public function addFormNote(int $id, string $note, ?string $author = null): bool
+    {
+        return $this->send('post', '/api/forms/'.$id.'/notes', array_filter([
+            'note' => $note,
+            'author' => $author,
+        ], fn ($v) => $v !== null && $v !== ''));
+    }
+
+    public function updateForm(int $id, array $payload): bool
+    {
+        return $this->send('put', '/api/forms/'.$id, $payload);
+    }
+
+    public function deleteForm(int $id, ?string $actor = null): bool
+    {
+        return $this->send('delete', '/api/forms/'.$id, array_filter(['actor' => $actor]));
+    }
+
+    // ---- RBAC ----
+
+    /** Effective permissions for a username: ['role_name','is_admin','permissions'=>[...]]. */
+    public function resolvePermissions(string $username): ?array
+    {
+        return $this->getJson('/api/rbac/resolve/'.rawurlencode($username));
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function rbacRoles(): array
+    {
+        return $this->getData('/api/rbac/roles', [], 'data');
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function rbacUserRoles(): array
+    {
+        return $this->getData('/api/rbac/user-roles', [], 'data');
+    }
+
+    public function saveRbacRole(array $payload): bool
+    {
+        return $this->send('post', '/api/rbac/roles', $payload);
+    }
+
+    public function updateRbacRole(int $id, array $payload): bool
+    {
+        return $this->send('put', '/api/rbac/roles/'.$id, $payload);
+    }
+
+    public function deleteRbacRole(int $id): bool
+    {
+        return $this->send('delete', '/api/rbac/roles/'.$id);
+    }
+
+    public function assignRbacUser(string $username, int $roleId): bool
+    {
+        return $this->send('put', '/api/rbac/user-roles', ['username' => $username, 'role_id' => $roleId]);
+    }
+
+    public function removeRbacUser(string $username): bool
+    {
+        return $this->send('delete', '/api/rbac/user-roles/'.rawurlencode($username));
+    }
+
+    /** Re-run the OCR + signature pipeline on a form's stored files. */
+    public function reprocessForm(int $id): bool
+    {
+        return $this->send('post', '/api/forms/'.$id.'/reprocess');
+    }
+
+    /** Small JSON request helper (post/put/delete) that records lastError/lastWarning. */
+    protected function send(string $method, string $path, array $payload = []): bool
+    {
+        $this->lastWarning = null;
+        try {
+            $resp = Http::timeout($this->timeout)->acceptJson()->{$method}($this->baseUrl.$path, $payload);
+            if (! $resp->successful()) {
+                $this->lastError = $resp->json('message') ?? "Middleware returned HTTP {$resp->status()} for {$path}.";
+                return false;
+            }
+            $this->lastWarning = $resp->json('warning');
+            return true;
+        } catch (\Throwable $e) {
+            $this->lastError = "Could not reach the middleware at {$this->baseUrl} ({$e->getMessage()}).";
+            return false;
+        }
     }
 
     /**

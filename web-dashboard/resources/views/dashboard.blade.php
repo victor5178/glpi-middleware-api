@@ -4,6 +4,55 @@
 
 @section('content')
 
+@php
+    // SVG path for an asset category icon.
+    $categoryIcon = function ($cat) {
+        $c = strtolower(trim((string) $cat));
+        return match (true) {
+            str_contains($c, 'laptop') => 'M4 5h16v10H4z M2 19h20',                                   // laptop
+            str_contains($c, 'printer') => 'M6 9V3h12v6 M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2 M8 14h8v6H8z', // printer
+            str_contains($c, 'monitor') => 'M3 4h18v12H3z M8 20h8 M12 16v4',                          // monitor (screen + stand)
+            str_contains($c, 'ups') => 'M6 7h12v10H6z M9 4h6 M10 12h4',                                // ups (battery)
+            str_contains($c, 'peripheral') || str_contains($c, 'network') => 'M12 2a5 5 0 0 0-5 5v10a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z M12 6v4', // mouse
+            str_contains($c, 'computer') || str_contains($c, 'desktop') => 'M7 3h10v18H7z M10 7h4 M10 10h4 M11 15h2', // desktop tower
+            default => 'M4 4h16v16H4z',                                                                // generic box
+        };
+    };
+    // Group a category into one of the badge buckets (key, label, icon path).
+    $catBadge = function ($cat) {
+        $c = strtolower(trim((string) $cat));
+        return match (true) {
+            str_contains($c, 'monitor') => ['monitor', 'Monitor', 'M3 4h18v12H3z M8 20h8 M12 16v4'],
+            str_contains($c, 'printer') => ['printer', 'Printer', 'M6 9V3h12v6 M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2 M8 14h8v6H8z'],
+            str_contains($c, 'network') || str_contains($c, 'peripheral') || str_contains($c, 'server')
+                => ['network', 'Network / Peripheral', 'M4 4h16v6H4z M4 14h16v6H4z M8 7h.01 M8 17h.01'],
+            default => ['pc', 'Computer / Laptop', 'M4 5h16v10H4z M2 19h20'], // computer / laptop / notebook
+        };
+    };
+    // Split "user@HOSTNAME": device name = after @, clean user = before @.
+    $splitAssigned = function ($item) {
+        $assigned = (string) ($item['assigned_user'] ?? '');
+        $host = str_contains($assigned, '@') ? trim(substr($assigned, strpos($assigned, '@') + 1)) : null;
+        $raw = ((string) ($item['actual_user'] ?? '')) ?: $assigned;
+        $user = str_contains($raw, '@') ? trim(substr($raw, 0, strpos($raw, '@'))) : $raw;
+        if ($user === '' || $user === '-') $user = '—';
+        return [$host, $user];
+    };
+    // Asset-aging bar from the GLPI purchase/commission date (assets.date_buy).
+    // Returns null when no usable date is present so the bar is simply omitted.
+    $aging = function ($buy) {
+        $src = $buy ?: null;
+        if (empty($src) || str_starts_with((string) $src, '0000-00-00')) return null;
+        try { $d = \Illuminate\Support\Carbon::parse($src); } catch (\Throwable $e) { return null; }
+        if ($d->year < 1990 || $d->isFuture()) return null;
+        $years = round($d->floatDiffInYears(now()), 1);
+        $life = (float) config('services.glpi.asset_life_years', 5);
+        $pct = max(4, min(100, ($years / max(0.1, $life)) * 100));
+        $color = $pct >= 100 ? 'red' : ($pct >= 70 ? 'amber' : 'green');
+        return ['years' => $years, 'pct' => $pct, 'color' => $color, 'life' => $life];
+    };
+@endphp
+
     @if ($error)
         <div class="alert alert-warn"><strong>Heads up:</strong> {{ $error }}</div>
     @endif
@@ -55,57 +104,168 @@
         @endforeach
     </div>
 
+    @if (! empty($groups))
+        <div class="scan-search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="search" id="scanSearch" placeholder="Search user, asset name, tag, serial, FA tag, category, location…" autocomplete="off">
+        </div>
+    @endif
+
     <div class="section-label">Scanned items</div>
 
     @if (empty($groups))
         <div class="alert alert-muted">No assets have been scanned for this audit yet.</div>
     @else
-        @foreach ($groups as $company => $groupItems)
+        @foreach ($groups as $site => $usersInSite)
+            @php $siteCount = collect($usersInSite)->sum(fn ($u) => count($u)); @endphp
+            <div class="site-block">
             <div class="group-head">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V7l6-4 6 4v14M10 9h.01M14 9h.01M10 13h.01M14 13h.01M10 17h.01M14 17h.01"/></svg>
-                <span class="group-name">{{ $company }}</span>
-                <span class="group-count">{{ count($groupItems) }}</span>
+                <span class="group-name">{{ $site }}</span>
+                <span class="group-count">{{ $siteCount }}</span>
             </div>
-            <div class="grid">
-                @foreach ($groupItems as $item)
-                    @php
-                        $resultId = (int) ($item['audit_result_id'] ?? 0);
-                        $found = (int) ($item['asset_found'] ?? 0) === 1;
-                        $checkedAt = \Illuminate\Support\Str::of((string) ($item['checked_at'] ?? ''))->replace('T', ' ')->limit(19, '');
-                        $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
-                        $user = ($item['actual_user'] ?? '') ?: ($item['assigned_user'] ?? '') ?: '—';
-                    @endphp
-                    <a class="asset" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
-                        <div class="thumb-wrap">
-                            @if ($hasPhoto)
-                                <img loading="lazy" src="{{ $client->imageUrl($resultId) }}"
-                                     alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}"
-                                     onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
-                                <div class="thumb-empty" style="display:none;">Photo unavailable</div>
-                            @else
-                                <div class="thumb-empty">
-                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
-                                    No photo
+
+            @foreach ($usersInSite as $user => $userItems)
+                @php
+                    $catCounts = [];
+                    foreach ($userItems as $ci) {
+                        [$gk, $glabel, $gicon] = $catBadge($ci['category'] ?? '');
+                        if (! isset($catCounts[$gk])) $catCounts[$gk] = ['label' => $glabel, 'icon' => $gicon, 'count' => 0];
+                        $catCounts[$gk]['count']++;
+                    }
+                @endphp
+                <details class="user-group" data-uname="{{ strtolower($user) }}">
+                    <summary>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span class="user-name">{{ $user }}</span>
+                        <span class="cat-badges">
+                            @foreach ($catCounts as $b)
+                                <span class="cat-badge" title="{{ $b['label'] }}{{ $b['count'] > 1 ? ' ×'.$b['count'] : '' }}">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $b['icon'] }}"/></svg>
+                                    @if ($b['count'] > 1)<span class="cat-badge-x">{{ $b['count'] }}</span>@endif
+                                </span>
+                            @endforeach
+                        </span>
+                        <span class="group-count">{{ count($userItems) }}</span>
+                    </summary>
+                    <div class="grid">
+                        @foreach ($userItems as $item)
+                            @php
+                                $resultId = (int) ($item['audit_result_id'] ?? 0);
+                                $found = (int) ($item['asset_found'] ?? 0) === 1;
+                                $checkedAt = ! empty($item['checked_at'])
+                                    ? \Illuminate\Support\Carbon::parse($item['checked_at'], 'UTC')->timezone('Asia/Kuching')->format('Y-m-d H:i')
+                                    : '';
+                                $hasPhoto = ! empty($item['img_dir']) && $resultId > 0;
+                                [$hostName, $cardUser] = $splitAssigned($item);
+                                $deviceName = $hostName ?: ($item['asset_tag'] ?? ('Asset #'.($item['asset_id'] ?? '?')));
+                                $category = $item['category'] ?? '';
+                            @endphp
+                            @php
+                                $searchHay = strtolower(trim(implode(' ', array_filter([
+                                    $deviceName, $item['asset_tag'] ?? '', $item['serial_number'] ?? '',
+                                    $item['model'] ?? '', $category, $site, $cardUser,
+                                    $item['fa_tagging'] ?? '',
+                                ]))));
+                            @endphp
+                            <a class="asset" data-asset="{{ $searchHay }}" href="{{ route('scanned.show', ['auditId' => $selectedAuditId, 'resultId' => $resultId]) }}">
+                                <div class="thumb-wrap">
+                                    @if ($hasPhoto)
+                                        <img loading="lazy" src="{{ url('media/'.ltrim($item['img_dir'], '/')) }}"
+                                             alt="Photo of {{ $item['asset_tag'] ?? 'asset' }}"
+                                             onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+                                        <div class="thumb-empty" style="display:none;">Photo unavailable</div>
+                                    @else
+                                        <div class="thumb-empty">
+                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
+                                            No photo
+                                        </div>
+                                    @endif
                                 </div>
-                            @endif
-                        </div>
-                        <div class="body">
-                            <div class="row1">
-                                <span class="name">{{ $item['asset_tag'] ?? 'Asset #'.($item['asset_id'] ?? '?') }}</span>
-                                <span class="pill {{ $found ? 'pill-success' : 'pill-danger' }}"><span class="dot"></span>{{ $found ? 'Found' : 'Missing' }}</span>
-                            </div>
-                            <span class="sub">{{ $item['model'] ?? 'Unknown model' }}</span>
-                            <span class="sub user">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                {{ $user }}
-                            </span>
-                            <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
-                            <span class="meta">{{ $item['checked_by'] ?: 'Unknown' }} · {{ $checkedAt }}</span>
-                        </div>
-                    </a>
-                @endforeach
-            </div>
+                                <div class="body">
+                                    <div class="row1">
+                                        <span class="name">{{ $deviceName }}</span>
+                                        <span class="cat-icon {{ $found ? 'cat-found' : 'cat-missing' }}" title="{{ $category ?: 'Asset' }}{{ $found ? ' · Found' : ' · Missing' }}">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $categoryIcon($category) }}"/></svg>
+                                        </span>
+                                    </div>
+                                    <span class="sub">{{ $item['model'] ?? 'Unknown model' }}</span>
+                                    <span class="sub user">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        {{ $cardUser }}
+                                    </span>
+                                    @if ($hostName)<span class="sub">Tag: {{ $item['asset_tag'] ?? '—' }}</span>@endif
+                                    <span class="sub">Serial: {{ $item['serial_number'] ?? '—' }}</span>
+                                    @if (! empty($item['fa_tagging']))<span class="sub">FA: {{ $item['fa_tagging'] }}</span>@endif
+                                    @php $ag = $aging($item['date_buy'] ?? null); @endphp
+                                    @if ($ag)
+                                        <div class="aging" title="≈ {{ $ag['years'] }} yr of {{ $ag['life'] }} yr lifespan">
+                                            <div class="aging-head"><span>Aging</span><span>{{ $ag['years'] }} yr / {{ $ag['life'] }} yr</span></div>
+                                            <div class="aging-track"><div class="aging-fill aging-{{ $ag['color'] }}" style="width:{{ round($ag['pct']) }}%"></div></div>
+                                        </div>
+                                    @endif
+                                    <span class="meta">{{ $item['checked_by'] ?: 'Unknown' }} · {{ $checkedAt }}</span>
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                </details>
+            @endforeach
+            </div>{{-- /.site-block --}}
         @endforeach
+
+        <div id="scanEmpty" class="alert alert-muted" style="display:none;">No items match your search.</div>
     @endif
+
+    <script>
+    (function () {
+        var input = document.getElementById('scanSearch');
+        if (!input) return;
+        var empty = document.getElementById('scanEmpty');
+        var sites = Array.prototype.slice.call(document.querySelectorAll('.site-block'));
+
+        function apply() {
+            var q = input.value.trim().toLowerCase();
+            var anyVisible = false;
+
+            sites.forEach(function (site) {
+                var siteVisible = false;
+                var groups = site.querySelectorAll('.user-group');
+                Array.prototype.forEach.call(groups, function (g) {
+                    var uname = g.getAttribute('data-uname') || '';
+                    var unameMatch = q !== '' && uname.indexOf(q) !== -1;
+                    var cardHit = false;
+
+                    Array.prototype.forEach.call(g.querySelectorAll('.asset'), function (c) {
+                        var hay = c.getAttribute('data-asset') || '';
+                        var isHit = q !== '' && !unameMatch && hay.indexOf(q) !== -1;
+                        // Show all cards when empty query or the user name matched.
+                        c.style.display = (q === '' || unameMatch || hay.indexOf(q) !== -1) ? '' : 'none';
+                        c.classList.toggle('search-hit', isHit);
+                        if (isHit) cardHit = true;
+                    });
+
+                    var show = q === '' || unameMatch || cardHit;
+                    g.style.display = show ? '' : 'none';
+                    g.open = (q !== '' && cardHit);   // auto-expand only on an asset match
+                    if (show) siteVisible = true;
+                });
+
+                site.style.display = siteVisible ? '' : 'none';
+                if (siteVisible) anyVisible = true;
+            });
+
+            if (empty) empty.style.display = (q !== '' && !anyVisible) ? '' : 'none';
+
+            if (q !== '') {
+                var first = document.querySelector('.asset.search-hit');
+                if (first) first.scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        var t;
+        input.addEventListener('input', function () { clearTimeout(t); t = setTimeout(apply, 120); });
+    })();
+    </script>
 
 @endsection

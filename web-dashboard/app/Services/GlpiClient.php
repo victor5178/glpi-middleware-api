@@ -18,7 +18,7 @@ class GlpiClient
     protected int $timeout;
 
     /** GLPI item types to search. */
-    protected array $types = ['Computer', 'Monitor', 'Peripheral', 'Printer'];
+    protected array $types = ['Computer', 'Monitor', 'Peripheral', 'Printer', 'NetworkEquipment'];
 
     public ?string $lastError = null;
 
@@ -122,10 +122,13 @@ class GlpiClient
             $results[] = [
                 'type' => $type,
                 'id' => $id,
-                'name' => $item['name'] ?? null,
-                'serial' => $item['serial'] ?? null,
-                'otherserial' => $item['otherserial'] ?? null,
-                'contact' => $item['contact'] ?? null,
+                'name' => $this->cleanText($item['name'] ?? null),
+                'serial' => $this->cleanText($item['serial'] ?? null),
+                'otherserial' => $this->cleanText($item['otherserial'] ?? null),
+                'contact' => $this->cleanText($item['contact'] ?? null),
+                'comment' => $this->cleanText($item['comment'] ?? null),
+                'date_buy' => $item['date_buy'] ?? null,
+                'date_creation' => $item['date_creation'] ?? null,
             ];
         };
 
@@ -150,6 +153,183 @@ class GlpiClient
         }
 
         return $results;
+    }
+
+    /**
+     * List GLPI assets across the searched item types (optionally filtered by a
+     * free-text term matched against name / serial / asset tag / user /
+     * location). Used by Asset Review to reconcile inventory against audits.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    /**
+     * @param array<int, string> $types GLPI item types to include (empty = all)
+     */
+    public function listAssets(?string $username, ?string $password, string $filter = '', bool $activeOnly = false, array $types = []): array
+    {
+        $typesToScan = ! empty($types)
+            ? array_values(array_intersect($this->types, $types))
+            : $this->types;
+
+        if ($username !== null && $username !== '' && $password !== null && $password !== '') {
+            $session = $this->attemptLogin($username, $password);
+        } elseif ($this->isConfigured()) {
+            $session = $this->initSession();
+        } else {
+            $this->lastError = 'GLPI is not configured. Log in again, or set GLPI_LOGIN / GLPI_PASSWORD for a service account.';
+            return [];
+        }
+        if ($session === null) {
+            return [];
+        }
+
+        $needle = trim(mb_strtolower($filter));
+        $results = [];
+        try {
+            foreach ($typesToScan as $type) {
+                foreach ($this->listType($type, $session) as $it) {
+                    // With expand_dropdowns, states_id is the status NAME (e.g. "Active").
+                    $status = is_string($it['states_id'] ?? null) ? trim($it['states_id']) : null;
+
+                    // Skip anything that isn't Active when requested.
+                    if ($activeOnly && ! $this->isActiveStatus($status)) {
+                        continue;
+                    }
+
+                    // Registered user: prefer the assigned user (users_id, a name
+                    // via expand_dropdowns), fall back to the free-text contact.
+                    $regUser = is_string($it['users_id'] ?? null) ? $it['users_id']
+                        : (is_string($it['contact'] ?? null) ? $it['contact'] : null);
+
+                    $entry = [
+                        'type' => $type,
+                        'id' => $it['id'] ?? null,
+                        'name' => $this->cleanText($it['name'] ?? null),
+                        'serial' => $this->cleanText($it['serial'] ?? null),
+                        'otherserial' => $this->cleanText($it['otherserial'] ?? null),
+                        'contact' => $this->cleanText($it['contact'] ?? null),
+                        'user' => $this->cleanText($regUser),
+                        'location' => $this->cleanLocation(is_string($it['locations_id'] ?? null) ? $it['locations_id'] : null),
+                        'status' => $status,
+                    ];
+                    if ($needle !== '') {
+                        $hay = mb_strtolower(implode(' ', array_filter([
+                            $entry['name'], $entry['serial'], $entry['otherserial'], $entry['contact'], $entry['location'],
+                        ], fn ($v) => is_string($v) && $v !== '')));
+                        if (! str_contains($hay, $needle)) {
+                            continue;
+                        }
+                    }
+                    $results[] = $entry;
+                }
+            }
+        } finally {
+            $this->killSession($session);
+        }
+
+        return $results;
+    }
+
+    /** Decode HTML entities GLPI returns (e.g. "&#62;" → ">", "&amp;" → "&"). */
+    protected function cleanText(?string $v): ?string
+    {
+        if ($v === null) {
+            return null;
+        }
+        return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Clean a GLPI location: decode entities and turn the completename hierarchy
+     * separator ("A > B") into the comma form used by scanned sites ("A , B").
+     */
+    protected function cleanLocation(?string $v): ?string
+    {
+        $v = $this->cleanText($v);
+        if ($v === null || $v === '') {
+            return $v;
+        }
+        return trim(preg_replace('/\s*>\s*/', ' , ', $v));
+    }
+
+    /**
+     * Whether a GLPI status name counts as "active". Configurable via
+     * GLPI_ACTIVE_STATUSES (comma-separated); defaults to common active labels.
+     */
+    protected function isActiveStatus(?string $status): bool
+    {
+        if ($status === null || $status === '') {
+            return false;
+        }
+        $active = array_filter(array_map('trim', explode(',', (string) config('services.glpi.active_statuses', 'Active,In use,In-use,Inuse'))));
+        foreach ($active as $a) {
+            if (strcasecmp($status, $a) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function listType(string $type, string $session): array
+    {
+        // expand_dropdowns returns location/user as names (not ids) for filtering.
+        $url = $this->baseUrl.'/'.$type.'?range=0-999&expand_dropdowns=true';
+        try {
+            $resp = Http::timeout($this->timeout * 2)
+                ->withHeaders(['App-Token' => $this->appToken, 'Session-Token' => $session])
+                ->get($url);
+            $json = $resp->successful() ? $resp->json() : null;
+            return is_array($json) ? array_filter($json, 'is_array') : [];
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Create a new asset in GLPI. Returns ['ok'=>bool, 'id'=>?int, 'type'=>string]
+     * or ['ok'=>false,'error'=>string]. Requires the GLPI account to have write
+     * permission on the item type.
+     *
+     * @param array<string, mixed> $fields GLPI "input" fields (name, serial, …)
+     */
+    public function createAsset(?string $username, ?string $password, string $itemtype, array $fields): array
+    {
+        if (! in_array($itemtype, $this->types, true)) {
+            $itemtype = 'Computer';
+        }
+        if ($username !== null && $username !== '' && $password !== null && $password !== '') {
+            $session = $this->attemptLogin($username, $password);
+        } elseif ($this->isConfigured()) {
+            $session = $this->initSession();
+        } else {
+            $this->lastError = 'GLPI is not configured.';
+            return ['ok' => false, 'error' => $this->lastError];
+        }
+        if ($session === null) {
+            return ['ok' => false, 'error' => $this->lastError];
+        }
+
+        try {
+            $resp = Http::timeout($this->timeout)
+                ->withHeaders(['App-Token' => $this->appToken, 'Session-Token' => $session])
+                ->post($this->baseUrl.'/'.$itemtype, ['input' => $fields]);
+
+            if (! $resp->successful()) {
+                $body = $resp->json();
+                $msg = is_array($body)
+                    ? implode(' — ', array_map(fn ($x) => is_string($x) ? $x : json_encode($x), $body))
+                    : $resp->body();
+                return ['ok' => false, 'error' => 'GLPI create failed (HTTP '.$resp->status().')'.($msg ? ': '.$msg : '')];
+            }
+            $json = $resp->json();
+            $id = is_array($json) ? ($json['id'] ?? ($json[0]['id'] ?? null)) : null;
+            return ['ok' => true, 'id' => $id, 'type' => $itemtype];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => 'Could not reach GLPI ('.$e->getMessage().').'];
+        } finally {
+            $this->killSession($session);
+        }
     }
 
     protected function initSession(): ?string
